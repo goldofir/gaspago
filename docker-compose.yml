@@ -21,8 +21,7 @@ services:
       MINIO_BUCKET_PUBLIC: gaspago-public
       MINIO_BUCKET_PRIVATE: gaspago-private
       MINIO_PUBLIC_URL: http://localhost:9010/gaspago-public
-      ADMIN_EMAIL: admin@gaspago.app
-      ADMIN_PASSWORD: gaspago2025
+      # ADMIN_EMAIL e ADMIN_PASSWORD_HASH ficam em gaspago-api/.env (fora do git)
     depends_on:
       postgres:
         condition: service_healthy

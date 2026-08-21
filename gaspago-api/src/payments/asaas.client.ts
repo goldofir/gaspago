@@ -17,6 +17,7 @@ function asaas() {
 export async function createSubAccount(data: {
   name: string; email: string; cpfCnpj: string; mobilePhone: string
   address: string; addressNumber: string; province: string; postalCode: string
+  companyType?: 'MEI' | 'LIMITED' | 'INDIVIDUAL' | 'ASSOCIATION'
 }) {
   const res = await asaas().post('/accounts', data)
   return res.data as { id: string; walletId: string; apiKey: string }

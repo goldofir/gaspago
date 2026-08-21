@@ -16,7 +16,13 @@ type Establishment = {
   createdAt: string
 }
 
-const emptyForm = { name: '', cnpj: '', phone: '', address: '', city: '', state: '', postalCode: '', cashbackPercent: 10 }
+const emptyForm = { name: '', cnpj: '', companyType: 'LIMITED', phone: '', address: '', city: '', state: '', postalCode: '', cashbackPercent: 10 }
+const COMPANY_TYPES = [
+  { value: 'MEI', label: 'MEI' },
+  { value: 'LIMITED', label: 'Ltda / Sociedade Limitada' },
+  { value: 'INDIVIDUAL', label: 'Empresário Individual' },
+  { value: 'ASSOCIATION', label: 'Associação / Cooperativa' },
+]
 
 export default function CredenciadorEstablishmentsPage() {
   const [establishments, setEstablishments] = useState<Establishment[]>([])
@@ -24,6 +30,7 @@ export default function CredenciadorEstablishmentsPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   async function load() {
     setLoading(true)
@@ -41,12 +48,18 @@ export default function CredenciadorEstablishmentsPage() {
   async function submitForm(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    setError('')
     try {
-      await portalFetch(TOKEN_KEY, `${API}/establishments`, {
+      const res = await portalFetch(TOKEN_KEY, `${API}/establishments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, cashbackPercent: form.cashbackPercent / 100 }),
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? 'Não foi possível cadastrar o estabelecimento.')
+        return
+      }
       setShowForm(false)
       setForm(emptyForm)
       load()
@@ -89,6 +102,16 @@ export default function CredenciadorEstablishmentsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12, marginBottom: 16 }}>
             {inp('name', 'Nome do estabelecimento')}
             {inp('cnpj', 'CNPJ')}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Tipo de empresa</label>
+              <select
+                required value={form.companyType}
+                onChange={e => setForm(f => ({ ...f, companyType: e.target.value }))}
+                style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text)', background: 'var(--ground)' }}
+              >
+                {COMPANY_TYPES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </div>
             {inp('phone', 'Telefone')}
             {inp('address', 'Endereço')}
             {inp('city', 'Cidade')}
@@ -96,6 +119,7 @@ export default function CredenciadorEstablishmentsPage() {
             {inp('postalCode', 'CEP')}
             {inp('cashbackPercent', 'Cashback (%)', 'number')}
           </div>
+          {error && <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 8, background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', color: 'var(--red)', fontSize: 13 }}>{error}</div>}
           <button
             type="submit" disabled={saving}
             style={{ padding: '10px 22px', borderRadius: 9, background: 'var(--flame)', color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}

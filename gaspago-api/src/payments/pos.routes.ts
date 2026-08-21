@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify'
+import { randomUUID } from 'crypto'
 import { z } from 'zod'
 import { SignJWT, jwtVerify } from 'jose'
 import { prisma } from '../shared/prisma'
@@ -42,27 +43,27 @@ export async function posRoutes(app: FastifyInstance) {
 
     const expiresAt = new Date(Date.now() + config.pos.qrExpiresMinutes * 60_000)
     const marginOffered = body.amount * est.cashbackPercent
+    const id = randomUUID()
 
-    const posPayment = await prisma.posPayment.create({
-      data: {
-        establishmentId: est.id,
-        customerId: 'pending',
-        totalAmount: body.amount,
-        pixAmount: body.amount,
-        marginOffered,
-        cashbackPercent: est.cashbackPercent,
-        qrToken: 'pending',
-        qrExpiresAt: expiresAt,
-        status: 'AWAITING_SCAN',
-      },
-    })
-
-    const token = await new SignJWT({ posPaymentId: posPayment.id, establishmentId: est.id, totalAmount: body.amount, exp: expiresAt.getTime() })
+    const token = await new SignJWT({ posPaymentId: id, establishmentId: est.id, totalAmount: body.amount, exp: expiresAt.getTime() })
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime(expiresAt)
       .sign(secret)
 
-    await prisma.posPayment.update({ where: { id: posPayment.id }, data: { qrToken: token } })
+    const posPayment = await prisma.posPayment.create({
+      data: {
+        id,
+        establishmentId: est.id,
+        // customerId stays unset — unknown until someone scans the QR (see /scan)
+        totalAmount: body.amount,
+        pixAmount: body.amount,
+        marginOffered,
+        cashbackPercent: est.cashbackPercent,
+        qrToken: token,
+        qrExpiresAt: expiresAt,
+        status: 'AWAITING_SCAN',
+      },
+    })
 
     return reply.status(201).send({
       id: posPayment.id,
@@ -98,7 +99,13 @@ export async function posRoutes(app: FastifyInstance) {
   // POST /pos/scan — mobile app scans QR code and confirms payment
   app.post('/scan', async (req, reply) => {
     const body = ScanQrSchema.parse(req.body)
-    const customerId = (req as any).user?.id ?? 'anonymous'
+    let customerId: string | null = null
+    try {
+      await (req as any).jwtVerify()
+      customerId = (req as any).user?.id ?? null
+    } catch {
+      // no valid Authorization header — guest payment, customerId stays null
+    }
 
     let payload: any
     try {
@@ -118,19 +125,21 @@ export async function posRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: 'QR Code já utilizado ou cancelado' })
     }
 
+    if (body.fgolToUse > 0 && customerId === null) {
+      return reply.status(401).send({ error: 'Entre na sua conta para usar saldo FGOL neste pagamento.' })
+    }
+
     const est = await prisma.establishment.findUniqueOrThrow({ where: { id: establishmentId } })
     const fgolBrlValue = body.fgolToUse
     const pixAmount = Math.max(0, totalAmountNum - fgolBrlValue)
 
     // Debit FGOL balance if used
-    if (body.fgolToUse > 0 && customerId !== 'anonymous') {
+    if (body.fgolToUse > 0 && customerId !== null) {
       const user = await prisma.user.findUnique({ where: { id: customerId } })
-      if (user && Number(user.fgolBalance) < body.fgolToUse) {
+      if (!user || Number(user.fgolBalance) < body.fgolToUse) {
         return reply.status(400).send({ error: 'Saldo FGOL insuficiente' })
       }
-      if (user) {
-        await prisma.user.update({ where: { id: customerId }, data: { fgolBalance: { decrement: body.fgolToUse } } })
-      }
+      await prisma.user.update({ where: { id: customerId }, data: { fgolBalance: { decrement: body.fgolToUse } } })
     }
 
     await prisma.posPayment.update({

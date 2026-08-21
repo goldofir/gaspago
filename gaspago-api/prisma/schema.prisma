@@ -312,8 +312,10 @@ model PosPayment {
   id              String        @id @default(cuid())
   establishmentId String
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
-  customerId      String
-  customer        User          @relation(fields: [customerId], references: [id])
+  // Nullable: the charge is created (AWAITING_SCAN) before a customer exists — it's
+  // only known once someone scans the QR code, and a guest scan may never link a User at all.
+  customerId      String?
+  customer        User?         @relation(fields: [customerId], references: [id])
 
   totalAmount     Decimal @db.Decimal(10, 2) // full bill
   fgolUsed        Decimal @default(0) @db.Decimal(20, 8)

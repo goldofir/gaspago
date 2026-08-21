@@ -7,6 +7,7 @@ import { requireRole } from '../shared/auth.middleware'
 const CreateDistributorSchema = z.object({
   name: z.string(),
   cnpj: z.string(),
+  companyType: z.enum(['MEI', 'LIMITED', 'INDIVIDUAL', 'ASSOCIATION']),
   phone: z.string(),
   email: z.string().email().optional(),
   address: z.string(),
@@ -16,6 +17,16 @@ const CreateDistributorSchema = z.object({
   cashbackPercent: z.number().min(0).max(1),
   serviceRadiusKm: z.number().default(5),
 })
+
+// Asaas returns { errors: [{ code, description }] } on 400s from account/payment creation.
+// Surface that as a clean 400 instead of letting the raw AxiosError fall through to a 500.
+function asaasErrorMessage(err: any): string | null {
+  const errors = err?.response?.data?.errors
+  if (Array.isArray(errors) && errors.length) {
+    return errors.map((e: any) => e.description).join(' ')
+  }
+  return null
+}
 
 async function getMeDistributor(distributorId?: string) {
   if (!distributorId) {
@@ -173,19 +184,27 @@ export async function distributorRoutes(app: FastifyInstance) {
   // POST /distributors — onboard new distributor (credenciadorId always comes
   // from the authenticated account, never the request body)
   app.post('/', { preHandler: requireRole('CREDENCIADOR') }, async (req, reply) => {
-    const body = CreateDistributorSchema.parse(req.body)
+    const { companyType, ...body } = CreateDistributorSchema.parse(req.body)
     const credenciadorId = (req as any).user.id as string
 
-    const asaasAccount = await createSubAccount({
-      name: body.name,
-      email: body.email ?? `${body.cnpj}@gaspago.app`,
-      cpfCnpj: body.cnpj,
-      mobilePhone: body.phone,
-      address: body.address,
-      addressNumber: '0',
-      province: body.city,
-      postalCode: body.postalCode,
-    })
+    let asaasAccount
+    try {
+      asaasAccount = await createSubAccount({
+        name: body.name,
+        email: body.email ?? `${body.cnpj}@gaspago.app`,
+        cpfCnpj: body.cnpj,
+        companyType,
+        mobilePhone: body.phone,
+        address: body.address,
+        addressNumber: '0',
+        province: body.city,
+        postalCode: body.postalCode,
+      })
+    } catch (err: any) {
+      req.log.error({ err: err?.response?.data ?? err?.message }, '[distributors] Asaas createSubAccount failed')
+      const msg = asaasErrorMessage(err)
+      return reply.status(400).send({ error: msg ?? 'Não foi possível criar a subconta Asaas. Verifique os dados e a API Key em Credenciais.' })
+    }
 
     const distributor = await prisma.distributor.create({
       data: {
