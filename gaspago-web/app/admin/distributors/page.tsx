@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { adminFetch } from '../../_components/adminFetch';
 import {
   Search,
   Plus,
@@ -108,7 +109,7 @@ function StatusToggle({
   async function handleToggle() {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/distributors/${distributor.id}`, {
+      const res = await adminFetch(`${API}/admin/distributors/${distributor.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !distributor.isActive }),
@@ -234,7 +235,7 @@ function SlidePanel({
         ? `${API}/admin/distributors/${editing.id}`
         : `${API}/admin/distributors`;
       const method = editing ? 'PATCH' : 'POST';
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -656,7 +657,7 @@ export default function DistributorsPage() {
     try {
       const params = new URLSearchParams({ limit: '50' });
       if (search) params.set('search', search);
-      const res = await fetch(`${API}/admin/distributors?${params}`);
+      const res = await adminFetch(`${API}/admin/distributors?${params}`);
       if (!res.ok) throw new Error('Falha ao carregar');
       const data = await res.json();
       setDistributors(data);

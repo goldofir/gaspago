@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { TrendingUp, Coins, RefreshCw, ExternalLink, Inbox } from 'lucide-react'
+import { adminFetch } from '../../_components/adminFetch'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 
@@ -60,9 +61,9 @@ export default function RevenuePage() {
       setLoading(true)
       try {
         const [sumRes, revRes, bbRes] = await Promise.all([
-          fetch(`${API}/admin/revenue/summary`).then(r => r.json()),
-          fetch(`${API}/admin/revenue`).then(r => r.json()),
-          fetch(`${API}/admin/revenue/buybacks`).then(r => r.json()),
+          adminFetch(`${API}/admin/revenue/summary`).then(r => r.json()),
+          adminFetch(`${API}/admin/revenue`).then(r => r.json()),
+          adminFetch(`${API}/admin/revenue/buybacks`).then(r => r.json()),
         ])
         setSummary(sumRes)
         setRevenue(Array.isArray(revRes) ? revRes : [])

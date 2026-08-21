@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Send, CheckCircle2, XCircle, ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
+import { adminFetch } from '../../_components/adminFetch'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 
@@ -28,7 +29,7 @@ export default function EmailPage() {
     if (!testTo) return
     setSending(true); setResult(null)
     try {
-      const res = await fetch(`${API}/admin/email/test`, {
+      const res = await adminFetch(`${API}/admin/email/test`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: testTo }),
       })

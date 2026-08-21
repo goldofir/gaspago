@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle2, XCircle, RefreshCw, FileImage, Lock, Globe, Trash2, Layers } from 'lucide-react'
 import Link from 'next/link'
+import { adminFetch } from '../../_components/adminFetch'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 
@@ -21,7 +22,7 @@ export default function StoragePage() {
 
   const check = async () => {
     setChecking(true)
-    fetch(`${API}/admin/storage/status`)
+    adminFetch(`${API}/admin/storage/status`)
       .then(r => r.json()).then(d => { setStatus(d); setChecking(false) })
       .catch(() => { setStatus({ ok: false, error: 'Não foi possível conectar à API' }); setChecking(false) })
   }

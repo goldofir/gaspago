@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { adminFetch } from '../../_components/adminFetch'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 
@@ -148,7 +149,7 @@ export default function AffiliatesPage() {
 
   useEffect(() => {
     setLoadingStats(true)
-    fetch(`${API}/admin/users/stats`)
+    adminFetch(`${API}/admin/users/stats`)
       .then((r) => r.json())
       .then((data) => setStats(data))
       .catch(() => setStats(null))
@@ -159,7 +160,7 @@ export default function AffiliatesPage() {
     setLoadingUsers(true)
     const params = new URLSearchParams({ limit: '50', offset: '0' })
     if (f !== 'all') params.set('status', f)
-    fetch(`${API}/admin/users?${params}`)
+    adminFetch(`${API}/admin/users?${params}`)
       .then((r) => r.json())
       .then((data) => {
         setUsers(data.users ?? [])

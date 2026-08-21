@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Truck, Store, TrendingUp, Flame, Menu, X, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Truck, Store, TrendingUp, Flame, Menu, X, ChevronRight, LogOut } from 'lucide-react'
 
 const nav = [
   { href: '/credenciador',               label: 'Dashboard',       Icon: LayoutDashboard },
@@ -28,6 +28,11 @@ export default function CredenciadorLayout({ children }: { children: ReactNode }
     }
     setChecked(true)
   }, [isLoginPage, path, router])
+
+  function handleLogout() {
+    localStorage.removeItem('gp_credenciador_token')
+    router.push('/credenciador/login')
+  }
 
   if (isLoginPage) return <>{children}</>
   if (!checked) return null
@@ -109,6 +114,23 @@ export default function CredenciadorLayout({ children }: { children: ReactNode }
             )
           })}
         </nav>
+
+        <div style={{ padding: '10px 10px 14px' }}>
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+              padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: 'transparent', color: 'rgba(255,255,255,.55)',
+              fontSize: 13.5, fontFamily: 'inherit', transition: 'all .15s', textAlign: 'left',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,.12)'; e.currentTarget.style.color = '#fca5a5' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.55)' }}
+          >
+            <LogOut size={15} strokeWidth={1.8} />
+            Sair
+          </button>
+        </div>
       </aside>
 
       <main className="cred-main">{children}</main>

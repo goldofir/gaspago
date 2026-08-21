@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Crown, Users, XCircle, TrendingUp, Loader2 } from 'lucide-react'
+import { adminFetch } from '../../_components/adminFetch'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 
@@ -146,8 +147,8 @@ export default function AdminSubscriptionsPage() {
       setError(null)
       try {
         const [statsRes, listRes] = await Promise.all([
-          fetch(`${API}/admin/subscriptions/stats`, { credentials: 'include' }),
-          fetch(`${API}/admin/subscriptions?limit=100`, { credentials: 'include' }),
+          adminFetch(`${API}/admin/subscriptions/stats`),
+          adminFetch(`${API}/admin/subscriptions?limit=100`),
         ])
 
         if (!statsRes.ok || !listRes.ok) throw new Error('Erro ao carregar dados')

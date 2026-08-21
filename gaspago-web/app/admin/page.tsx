@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { AlertTriangle, CheckCircle2, Coins, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { adminFetch } from '../_components/adminFetch'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 
@@ -27,7 +28,7 @@ export default function DashboardPage() {
   const [creds, setCreds] = useState<CredStatus | null>(null)
 
   useEffect(() => {
-    fetch(`${API}/admin/credentials/status`)
+    adminFetch(`${API}/admin/credentials/status`)
       .then(r => r.json()).then(setCreds).catch(() => {})
   }, [])
 

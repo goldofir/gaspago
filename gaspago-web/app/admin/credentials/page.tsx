@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Check, AlertCircle, Eye, EyeOff, Save, RefreshCw, Lock, FlaskConical, Rocket, Pencil, X } from 'lucide-react'
+import { adminFetch } from '../../_components/adminFetch'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 
@@ -53,20 +54,14 @@ export default function CredentialsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const getAuthHeaders = () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('gp_admin_token') : null
-    return token ? { Authorization: `Bearer ${token}` } : {}
-  }
-
   const load = async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${API}/admin/credentials`, {
-        headers: getAuthHeaders(),
-      })
+      const res = await adminFetch(`${API}/admin/credentials`)
       if (res.status === 401) {
-        throw new Error('Sessão expirada ou não autorizada (401). Por favor, faça login em /login.')
+        // adminFetch already redirected to /login — nothing left to render here
+        return
       }
       if (!res.ok) {
         throw new Error(`Servidor retornou status ${res.status}`)
@@ -109,9 +104,9 @@ export default function CredentialsPage() {
     if (!editing[key]) return
     setSaving(s => ({ ...s, [key]: true }))
     try {
-      await fetch(`${API}/admin/credentials/${key}`, {
+      await adminFetch(`${API}/admin/credentials/${key}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: editing[key] }),
       })
       setSaved(s => ({ ...s, [key]: true }))
@@ -129,9 +124,9 @@ export default function CredentialsPage() {
     setEditing(ed => ({ ...ed, [key]: value }))
     setSaving(s => ({ ...s, [key]: true }))
     try {
-      await fetch(`${API}/admin/credentials/${key}`, {
+      await adminFetch(`${API}/admin/credentials/${key}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value }),
       })
       setSaved(s => ({ ...s, [key]: true }))

@@ -1,12 +1,13 @@
 'use client'
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, KeyRound, Mail, HardDrive,
-  Network, TrendingUp, ShoppingBag, ChevronRight, Flame, Menu, X, Truck, CreditCard,
+  Network, TrendingUp, ShoppingBag, ChevronRight, Flame, Menu, X, Truck, CreditCard, LogOut,
 } from 'lucide-react'
+import { adminLogout } from '../_components/adminFetch'
 
 const nav = [
   { href: '/admin',             label: 'Dashboard',   Icon: LayoutDashboard },
@@ -48,7 +49,20 @@ function NavItems({ path, onNavigate }: { path: string; onNavigate?: () => void 
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const path = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem('gp_admin_token')
+    if (!token) {
+      router.replace('/login')
+      return
+    }
+    setChecked(true)
+  }, [router])
+
+  if (!checked) return null
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--ground)' }}>
@@ -167,6 +181,23 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </p>
           <NavItems path={path} onNavigate={() => setOpen(false)} />
         </nav>
+
+        <div style={{ padding: '10px 10px 14px' }}>
+          <button
+            onClick={adminLogout}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+              padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: 'transparent', color: 'rgba(255,255,255,.55)',
+              fontSize: 13.5, fontFamily: 'inherit', transition: 'all .15s', textAlign: 'left',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,.12)'; e.currentTarget.style.color = '#fca5a5' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.55)' }}
+          >
+            <LogOut size={15} strokeWidth={1.8} />
+            Sair
+          </button>
+        </div>
 
         <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,.06)' }}>
           <p style={{ fontSize: 10, color: 'rgba(255,255,255,.2)', fontFamily: "'JetBrains Mono',monospace", lineHeight: 1.8 }}>

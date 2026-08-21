@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { adminFetch } from '../../_components/adminFetch'
 import {
   Package,
   Clock,
@@ -239,7 +240,7 @@ export default function OrdersPage() {
     async function fetchStats() {
       setLoadingStats(true)
       try {
-        const res = await fetch(`${API}/admin/orders/stats`)
+        const res = await adminFetch(`${API}/admin/orders/stats`)
         if (!res.ok) throw new Error('Erro ao carregar estatísticas')
         const data = await res.json()
         setStats(data)
@@ -259,7 +260,7 @@ export default function OrdersPage() {
       try {
         const params = new URLSearchParams({ limit: '100' })
         if (statusFilter !== 'ALL') params.set('status', statusFilter)
-        const res = await fetch(`${API}/admin/orders?${params}`)
+        const res = await adminFetch(`${API}/admin/orders?${params}`)
         if (!res.ok) throw new Error('Erro ao carregar pedidos')
         const data = await res.json()
         setOrders(data)

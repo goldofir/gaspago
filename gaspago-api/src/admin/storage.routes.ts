@@ -3,7 +3,7 @@ import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { SystemConfigService } from '../shared/system-config.service'
 
 export async function storageRoutes(app: FastifyInstance) {
-  app.get('/admin/storage/status', async (_req, reply) => {
+  app.get('/storage/status', async (_req, reply) => {
     try {
       const endpoint = SystemConfigService.get('MINIO_ENDPOINT')
       const accessKeyId = SystemConfigService.get('MINIO_ACCESS_KEY')
