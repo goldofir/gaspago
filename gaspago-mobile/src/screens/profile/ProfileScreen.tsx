@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Clipboard,
   Modal,
   ActivityIndicator,
   Pressable,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { getMe, apiClient } from '@/api/client';
@@ -139,16 +139,16 @@ export function ProfileScreen() {
     handleUpgrade();
   };
 
-  const handleCopyPixCode = () => {
+  const handleCopyPixCode = async () => {
     if (pixCode) {
-      Clipboard.setString(pixCode);
+      await Clipboard.setStringAsync(pixCode);
       setPixCopied(true);
       setTimeout(() => setPixCopied(false), 2000);
     }
   };
 
-  const handleCopyCode = () => {
-    Clipboard.setString(referralCode);
+  const handleCopyCode = async () => {
+    await Clipboard.setStringAsync(referralCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

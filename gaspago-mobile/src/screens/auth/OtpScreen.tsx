@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@/navigation';
-import { verifyOtp } from '@/api/client';
+import { verifyOtp, login } from '@/api/client';
 import { useAuthStore } from '@/store/auth.store';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Otp'>;
@@ -93,9 +93,7 @@ export function OtpScreen({ route, navigation }: Props) {
     if (countdown > 0) return;
     setCountdown(RESEND_SECONDS);
     setError(null);
-    import('@/api/client').then(({ login }) =>
-      login(phone).catch(() => {}),
-    );
+    login(phone).catch(() => {});
   };
 
   const maskedPhone = phone.replace(
