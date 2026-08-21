@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Flame, Eye, EyeOff, Loader2 } from 'lucide-react'
+import GoogleSignInButton from '../_components/GoogleSignInButton'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 
@@ -13,6 +14,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  function handleGoogleSuccess(data: { token: string; role: string }) {
+    localStorage.setItem('gp_admin_token', data.token)
+    router.push('/admin')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -351,6 +357,14 @@ export default function LoginPage() {
               }
             </button>
           </form>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0 16px' }}>
+            <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>ou</span>
+            <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          </div>
+
+          <GoogleSignInButton portal="admin" onSuccess={handleGoogleSuccess} onError={setError} />
         </div>
 
         <p className="footer-note">Gás Pago V3 · Acesso exclusivo para administradores</p>

@@ -6,16 +6,36 @@ import { SystemConfigService } from '../shared/system-config.service'
 
 const bodySchema = z.object({
   idToken: z.string(),
+  // Absent = consumer/mobile flow (auto-creates a CONSUMER account, unchanged).
+  // Present = B2B/admin panel flow — never auto-creates, the email must already
+  // belong to a user with the matching role (provisioned via /admin/portal-accounts
+  // or the admin's own account). Google is an alternative credential, not a way
+  // to self-register into a business portal.
+  portal: z.enum(['distributor', 'credenciador', 'pos', 'admin']).optional(),
 })
 
+const PORTAL_ROLES: Record<'distributor' | 'credenciador' | 'pos' | 'admin', string[]> = {
+  distributor: ['DISTRIBUTOR'],
+  credenciador: ['CREDENCIADOR'],
+  pos: ['ESTABLISHMENT'],
+  admin: ['SUPERADMIN', 'ADMIN'],
+}
+
 export async function googleAuthRoutes(app: FastifyInstance) {
+  // GET /auth/google-client-id — public info (an OAuth client ID is not a secret,
+  // it's meant to be embedded in frontend code). Lets the web app render the
+  // Google button without baking the ID into the Docker image at build time.
+  app.get('/google-client-id', async () => {
+    return { clientId: SystemConfigService.get('GOOGLE_CLIENT_ID') ?? null }
+  })
+
   app.post('/google', async (request, reply) => {
     const parseResult = bodySchema.safeParse(request.body)
     if (!parseResult.success) {
       return reply.status(400).send({ error: 'idToken é obrigatório' })
     }
 
-    const { idToken } = parseResult.data
+    const { idToken, portal } = parseResult.data
 
     // 1. Verify token via Google tokeninfo endpoint
     let tokenInfo: Record<string, string>
@@ -34,13 +54,49 @@ export async function googleAuthRoutes(app: FastifyInstance) {
     // 2. Extract fields from tokeninfo response
     const { sub: googleId, email, name, picture: avatarUrl, aud } = tokenInfo
 
-    // 3. Optionally verify aud matches GOOGLE_CLIENT_ID
+    // 3. Verify aud matches GOOGLE_CLIENT_ID (skip only if not configured yet)
     const expectedClientId = SystemConfigService.get('GOOGLE_CLIENT_ID')
     if (expectedClientId && aud !== expectedClientId) {
       return reply.status(401).send({ error: 'Client ID inválido' })
     }
 
-    // 4. Upsert user by googleId (prefer) or by email
+    // ---- B2B / admin panel flow: look up only, never create ----
+    if (portal) {
+      if (!email) {
+        return reply.status(401).send({ error: 'Conta Google sem e-mail associado.' })
+      }
+
+      const roles = PORTAL_ROLES[portal]
+      const user = await prisma.user.findFirst({ where: { email, actorType: { in: roles as any } } })
+
+      if (!user) {
+        return reply.status(403).send({
+          error: 'Esta conta Google não tem acesso a este painel. Peça ao administrador para cadastrar seu e-mail.',
+        })
+      }
+
+      if (!user.googleId) {
+        await prisma.user.update({ where: { id: user.id }, data: { googleId, avatarUrl: avatarUrl ?? undefined } })
+      }
+
+      if (portal === 'admin') {
+        const token = (app as any).jwt.sign({ id: user.id, role: 'superadmin' }, { expiresIn: '24h' })
+        return reply.send({ token, role: 'superadmin' })
+      }
+
+      const token = (app as any).jwt.sign(
+        {
+          id: user.id,
+          role: user.actorType,
+          distributorId: user.distributorId ?? undefined,
+          establishmentId: user.establishmentId ?? undefined,
+        },
+        { expiresIn: '12h' },
+      )
+      return reply.send({ token, role: user.actorType, name: user.name })
+    }
+
+    // ---- Consumer / mobile flow: upsert by googleId, then by email, else create ----
     let user = await prisma.user.findUnique({ where: { googleId } })
 
     if (!user && email) {
@@ -70,13 +126,11 @@ export async function googleAuthRoutes(app: FastifyInstance) {
       })
     }
 
-    // 5. Sign JWT
     const token = (app as any).jwt.sign(
       { id: user.id, phone: user.phone, role: user.actorType },
       { expiresIn: '30d' },
     )
 
-    // 6. Return token and user
     return reply.send({
       token,
       user: {

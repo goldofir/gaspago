@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Flame, Eye, EyeOff, Loader2 } from 'lucide-react'
+import GoogleSignInButton from './GoogleSignInButton'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 
@@ -22,6 +23,20 @@ export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  function handleGoogleSuccess(data: { token: string; role: string }) {
+    const expectedRole = ({ distributor: 'DISTRIBUTOR', credenciador: 'CREDENCIADOR', pos: 'ESTABLISHMENT' } as const)[portal]
+    if (data.role !== expectedRole) {
+      setError('Esta conta não tem acesso a este painel')
+      return
+    }
+    localStorage.setItem(meta.tokenKey, data.token)
+    router.push(meta.redirect)
+  }
+
+  function handleGoogleError(message: string) {
+    setError(message)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -112,6 +127,9 @@ export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
         .plf-submit:disabled { opacity: .7; cursor: not-allowed; }
         .plf-spin { animation: plf-spin .75s linear infinite; }
         @keyframes plf-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .plf-divider { display: flex; align-items: center; gap: 10px; margin: 6px 0 16px; }
+        .plf-divider-line { flex: 1; height: 1px; background: #E2E8F0; }
+        .plf-divider-text { font-size: 12px; color: #94A3B8; }
         .plf-footer { font-size: 11.5px; color: rgba(255,255,255,.22); text-align: center; margin-top: 4px; }
         @media (max-width: 420px) { .plf-card { padding: 28px 20px; } }
       `}</style>
@@ -165,6 +183,14 @@ export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
                 {loading ? <><Loader2 size={16} className="plf-spin" /> Entrando…</> : 'Entrar'}
               </button>
             </form>
+
+            <div className="plf-divider">
+              <span className="plf-divider-line" />
+              <span className="plf-divider-text">ou</span>
+              <span className="plf-divider-line" />
+            </div>
+
+            <GoogleSignInButton portal={portal} onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
           </div>
 
           <p className="plf-footer">Gás Pago V3 · Acesso restrito a contas autorizadas</p>
