@@ -46,6 +46,11 @@ export async function getPayment(id: string) {
   return res.data as { id: string; status: string; value: number }
 }
 
+export async function getBalance() {
+  const res = await asaas().get('/finance/balance')
+  return res.data as { balance: number }
+}
+
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
 }

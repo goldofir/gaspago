@@ -17,6 +17,7 @@ import { subscriptionRoutes } from './subscriptions/subscription.routes'
 
 import { credenciadorRoutes } from './credenciador/credenciador.routes'
 import { establishmentRoutes } from './establishments/establishment.routes'
+import { startSchedulers } from './shared/scheduler'
 
 async function bootstrap() {
   await SystemConfigService.loadAll()
@@ -25,6 +26,16 @@ async function bootstrap() {
 
   await app.register(require('@fastify/cors'), { origin: true })
   await app.register(require('@fastify/jwt'), { secret: config.jwtSecret })
+
+  await app.register(require('@fastify/helmet'), {
+    contentSecurityPolicy: false, // API only serves JSON, not HTML — CSP not needed here
+  })
+
+  await app.register(require('@fastify/rate-limit'), {
+    global: true,
+    max: 100,
+    timeWindow: '1 minute',
+  })
 
   app.register(orderRoutes, { prefix: '/orders' })
   app.register(distributorRoutes, { prefix: '/distributors' })
@@ -54,6 +65,7 @@ async function bootstrap() {
   app.get('/health', async () => ({ status: 'ok', ts: Date.now() }))
 
   await app.listen({ port: config.port, host: '0.0.0.0' })
+  startSchedulers(app)
   app.log.info(`API rodando na porta ${config.port}`)
 }
 

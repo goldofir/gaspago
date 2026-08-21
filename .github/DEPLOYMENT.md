@@ -66,3 +66,17 @@ Para executar o deploy manualmente no servidor:
 cd /opt/gaspago
 bash deploy.sh
 ```
+
+## Produção com HTTPS (Caddy)
+
+1. Edite o `Caddyfile` com seus domínios reais (aponte o DNS A record para o IP do servidor antes).
+2. Gere o hash da senha do admin:
+   ```bash
+   docker exec gaspago-api node scripts/hash-password.js "sua-senha-forte"
+   ```
+   Cole o resultado em `ADMIN_PASSWORD_HASH` no `.env` e remova `ADMIN_PASSWORD`.
+3. Suba com o overlay de produção:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+   ```
+4. Caddy emite o certificado automaticamente na primeira requisição HTTPS — sem configuração manual de certbot.

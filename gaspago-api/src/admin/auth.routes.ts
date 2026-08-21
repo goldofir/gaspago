@@ -30,6 +30,9 @@ export async function authRoutes(app: FastifyInstance) {
           },
         },
       },
+      config: {
+        rateLimit: { max: 10, timeWindow: '1 minute' },
+      },
     },
     async (req, reply) => {
       const { email, password } = req.body

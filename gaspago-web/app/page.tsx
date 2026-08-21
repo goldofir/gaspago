@@ -499,6 +499,8 @@ export default function Home() {
           <a href="#como-funciona">Como funciona</a>
           <a href="#fgol">FGOL</a>
           <a href="#distribuidoras">Distribuidoras</a>
+          <a href="/termos">Termos</a>
+          <a href="/privacidade">Privacidade</a>
           <a href="/admin">Painel</a>
         </div>
         <p className="footer-copy">© 2026 Gás Pago. Todos os direitos reservados.</p>

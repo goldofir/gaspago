@@ -29,7 +29,7 @@ export async function googleAuthRoutes(app: FastifyInstance) {
     return { clientId: SystemConfigService.get('GOOGLE_CLIENT_ID') ?? null }
   })
 
-  app.post('/google', async (request, reply) => {
+  app.post('/google', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const parseResult = bodySchema.safeParse(request.body)
     if (!parseResult.success) {
       return reply.status(400).send({ error: 'idToken é obrigatório' })

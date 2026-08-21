@@ -21,7 +21,7 @@ const verifyBodySchema = z.object({
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   // POST /otp/request
-  app.post('/otp/request', async (req, reply) => {
+  app.post('/otp/request', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, reply) => {
     const parseResult = requestBodySchema.safeParse(req.body)
     if (!parseResult.success) {
       return reply.status(400).send({ error: parseResult.error.flatten() })
@@ -49,7 +49,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // POST /otp/verify
-  app.post('/otp/verify', async (req, reply) => {
+  app.post('/otp/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, reply) => {
     const parseResult = verifyBodySchema.safeParse(req.body)
     if (!parseResult.success) {
       return reply.status(400).send({ error: parseResult.error.flatten() })

@@ -15,7 +15,7 @@ const PORTAL_ROLES = ['DISTRIBUTOR', 'CREDENCIADOR', 'ESTABLISHMENT'] as const
 // identity source and JWT payload shape differ (role + distributorId/establishmentId).
 export async function portalAuthRoutes(app: FastifyInstance) {
   // POST /auth/portal-login
-  app.post('/portal-login', async (req, reply) => {
+  app.post('/portal-login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, reply) => {
     const { email, password } = LoginSchema.parse(req.body)
 
     const user = await prisma.user.findFirst({

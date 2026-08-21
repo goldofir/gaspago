@@ -1,0 +1,33 @@
+# Overlay de produção — HTTPS via Caddy (reverse proxy + Let's Encrypt automático).
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# Este arquivo NÃO substitui o docker-compose.yml — ele é aplicado por cima dele.
+# O ambiente de desenvolvimento local (docker compose up) continua inalterado.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: gaspago-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+    networks:
+      - gaspago
+
+  api:
+    ports: []  # em produção, para de expor 3030 diretamente — só o Caddy fica público
+
+  web:
+    ports: []  # em produção, para de expor 3031 diretamente — só o Caddy fica público
+
+volumes:
+  caddy_data:
+  caddy_config:

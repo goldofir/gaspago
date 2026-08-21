@@ -1,0 +1,16 @@
+# Edite os dominios abaixo antes de subir em producao.
+# Caddy provisiona certificado HTTPS automaticamente via Let's Encrypt.
+#
+# Antes de usar este arquivo:
+#   1. Troque "app.gaspago.com.br" e "api.gaspago.com.br" pelos seus dominios reais.
+#   2. Aponte o DNS (registro A) de cada dominio para o IP publico deste servidor.
+#   3. Certifique-se de que as portas 80 e 443 estao liberadas no firewall —
+#      o Caddy precisa da porta 80 para validar o certificado via HTTP-01.
+
+app.gaspago.com.br {
+  reverse_proxy web:3001
+}
+
+api.gaspago.com.br {
+  reverse_proxy api:3000
+}

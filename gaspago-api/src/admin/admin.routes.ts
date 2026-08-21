@@ -3,6 +3,7 @@ import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../shared/prisma'
 import { runMonthlyCommissionCron } from '../commissions/commission.cron'
+import { getBalance } from '../payments/asaas.client'
 import { credentialsRoutes } from './credentials.routes'
 import { emailRoutes } from './email.routes'
 import { storageRoutes } from './storage.routes'
@@ -101,8 +102,13 @@ export async function adminRoutes(app: FastifyInstance) {
   })
 
   // GET /admin/float — platform wallet balance (calls Asaas)
-  app.get('/float', async () => {
-    // TODO: call Asaas /finance/balance on main account
-    return { note: 'Connect to Asaas /finance/balance' }
+  app.get('/float', async (_req, reply) => {
+    try {
+      const balance = await getBalance()
+      return { balance: balance.balance }
+    } catch (err) {
+      app.log.error({ err }, '[admin] Failed to fetch Asaas balance')
+      return reply.status(200).send({ balance: null, error: 'Não foi possível consultar o saldo Asaas. Verifique a API Key em Credenciais.' })
+    }
   })
 }
