@@ -1,0 +1,177 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Flame, Eye, EyeOff, Loader2 } from 'lucide-react'
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
+
+export type PortalKind = 'distributor' | 'credenciador' | 'pos'
+
+const PORTAL_META: Record<PortalKind, { label: string; accent: string; redirect: string; tokenKey: string; placeholder: string }> = {
+  distributor:  { label: 'Painel da Distribuidora', accent: '#3B82F6', redirect: '/distributor',  tokenKey: 'gp_distributor_token',  placeholder: 'contato@distribuidora.com' },
+  credenciador: { label: 'Painel do Credenciador',  accent: '#F59E0B', redirect: '/credenciador',  tokenKey: 'gp_credenciador_token', placeholder: 'voce@credenciador.com' },
+  pos:          { label: 'Balcão / Estabelecimento', accent: '#10B981', redirect: '/pos',          tokenKey: 'gp_pos_token',          placeholder: 'caixa@estabelecimento.com' },
+}
+
+export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
+  const meta = PORTAL_META[portal]
+  const router = useRouter()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch(`${API}/auth/portal-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (res.status === 401) {
+        setError('Credenciais inválidas')
+        return
+      }
+      if (!res.ok) {
+        setError('Erro ao conectar com o servidor')
+        return
+      }
+
+      const data = await res.json()
+      if (data.role !== ({ distributor: 'DISTRIBUTOR', credenciador: 'CREDENCIADOR', pos: 'ESTABLISHMENT' } as const)[portal]) {
+        setError('Esta conta não tem acesso a este painel')
+        return
+      }
+
+      localStorage.setItem(meta.tokenKey, data.token)
+      router.push(meta.redirect)
+    } catch {
+      setError('Erro ao conectar com o servidor')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        .plf-body {
+          font-family: 'Inter', sans-serif; background: #0A1628; min-height: 100vh;
+          display: flex; align-items: center; justify-content: center; padding: 24px 16px;
+        }
+        .plf-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 420px; gap: 28px; }
+        .plf-brand { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .plf-icon {
+          width: 56px; height: 56px; border-radius: 14px;
+          background: linear-gradient(135deg, #FF6524 0%, #F2B825 100%);
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 4px 20px rgba(255,101,36,.35);
+        }
+        .plf-wordmark { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 22px; color: #fff; letter-spacing: -.01em; }
+        .plf-wordmark span { color: #FF6524; }
+        .plf-subtitle { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin-top: -6px; }
+        .plf-card { width: 100%; background: #fff; border-radius: 20px; padding: 36px; box-shadow: 0 8px 32px rgba(0,0,0,.16); }
+        .plf-title { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 20px; color: #0F2040; margin-bottom: 6px; }
+        .plf-desc { font-size: 13px; color: #475569; margin-bottom: 28px; line-height: 1.5; }
+        .plf-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+        .plf-label { font-size: 13px; font-weight: 500; color: #0F2040; }
+        .plf-input-wrap { position: relative; }
+        .plf-input {
+          width: 100%; padding: 10px 14px; border: 1.5px solid #E2E8F0; border-radius: 10px;
+          font-size: 14px; font-family: 'Inter', sans-serif; color: #0F2040; background: #fff;
+          outline: none; transition: border-color .15s, box-shadow .15s;
+        }
+        .plf-input:focus { border-color: ${meta.accent}; box-shadow: 0 0 0 3px ${meta.accent}22; }
+        .plf-input::placeholder { color: #94A3B8; }
+        .plf-input-toggle { padding-right: 42px; }
+        .plf-eye {
+          position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+          background: none; border: none; cursor: pointer; color: #94A3B8;
+          display: flex; align-items: center; padding: 2px;
+        }
+        .plf-error {
+          background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.18); border-radius: 8px;
+          padding: 10px 14px; font-size: 13px; color: #EF4444; font-weight: 500; margin-bottom: 18px;
+        }
+        .plf-submit {
+          width: 100%; padding: 12px; background: ${meta.accent}; color: #fff; border: none; border-radius: 10px;
+          font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          transition: transform .1s, box-shadow .15s; margin-top: 4px;
+        }
+        .plf-submit:hover:not(:disabled) { transform: translateY(-1px); }
+        .plf-submit:disabled { opacity: .7; cursor: not-allowed; }
+        .plf-spin { animation: plf-spin .75s linear infinite; }
+        @keyframes plf-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .plf-footer { font-size: 11.5px; color: rgba(255,255,255,.22); text-align: center; margin-top: 4px; }
+        @media (max-width: 420px) { .plf-card { padding: 28px 20px; } }
+      `}</style>
+
+      <div className="plf-body">
+        <div className="plf-wrap">
+          <div className="plf-brand">
+            <div className="plf-icon">
+              <Flame size={26} color="#fff" strokeWidth={2.5} />
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div className="plf-wordmark">GÁS<span>PAGO</span></div>
+              <div className="plf-subtitle" style={{ color: meta.accent }}>{meta.label}</div>
+            </div>
+          </div>
+
+          <div className="plf-card">
+            <h2 className="plf-title">Acesso restrito</h2>
+            <p className="plf-desc">Entre com as credenciais fornecidas pelo administrador.</p>
+
+            <form onSubmit={handleSubmit}>
+              <div className="plf-group">
+                <label className="plf-label" htmlFor="email">E-mail</label>
+                <input
+                  id="email" type="email" className="plf-input" placeholder={meta.placeholder}
+                  value={email} onChange={e => setEmail(e.target.value)}
+                  required autoComplete="email" autoFocus
+                />
+              </div>
+
+              <div className="plf-group">
+                <label className="plf-label" htmlFor="password">Senha</label>
+                <div className="plf-input-wrap">
+                  <input
+                    id="password" type={showPassword ? 'text' : 'password'} className="plf-input plf-input-toggle"
+                    placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
+                    required autoComplete="current-password"
+                  />
+                  <button
+                    type="button" className="plf-eye" onClick={() => setShowPassword(v => !v)}
+                    tabIndex={-1} aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPassword ? <EyeOff size={16} strokeWidth={2} /> : <Eye size={16} strokeWidth={2} />}
+                  </button>
+                </div>
+              </div>
+
+              {error && <div className="plf-error" role="alert">{error}</div>}
+
+              <button type="submit" className="plf-submit" disabled={loading}>
+                {loading ? <><Loader2 size={16} className="plf-spin" /> Entrando…</> : 'Entrar'}
+              </button>
+            </form>
+          </div>
+
+          <p className="plf-footer">Gás Pago V3 · Acesso restrito a contas autorizadas</p>
+        </div>
+      </div>
+    </>
+  )
+}
+
+export { PORTAL_META }

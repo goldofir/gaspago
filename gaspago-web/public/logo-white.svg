@@ -1,0 +1,10 @@
+<svg viewBox="0 0 320 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gás Pago">
+  <g transform="translate(4, 4)">
+    <path d="M36 4 C26 14 18 26 18 40 C18 56 26 68 36 72 C46 68 54 56 54 40 C54 26 46 14 36 4Z" fill="#FF8B56"/>
+    <path d="M36 18 C30 26 26 34 26 44 C26 54 30 62 36 64 C42 62 46 54 46 44 C46 34 42 26 36 18Z" fill="#FFD96A"/>
+    <path d="M36 32 C33 37 31 42 31 47 C31 52 33 57 36 58 C39 57 41 52 41 47 C41 42 39 37 36 32Z" fill="#fff" opacity=".9"/>
+  </g>
+  <text x="72" y="36" font-family="'Sora','Helvetica Neue',Arial,sans-serif" font-weight="800" font-size="28" fill="#ffffff" letter-spacing="-1">GÁS</text>
+  <text x="72" y="65" font-family="'Sora','Helvetica Neue',Arial,sans-serif" font-weight="700" font-size="24" fill="#FF8B56" letter-spacing=".5">PAGO</text>
+  <circle cx="155" cy="62" r="4" fill="#FFD96A"/>
+</svg>

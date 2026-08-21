@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Gás Pago",
+    "slug": "gaspago",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0A1628"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.gaspago"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0A1628"
+      },
+      "package": "app.gaspago",
+      "useNextNotificationsApi": true
+    },
+    "plugins": [
+      ["expo-notifications", {
+        "icon": "./assets/icon.png",
+        "color": "#FF6524",
+        "sounds": []
+      }]
+    ]
+  }
+}
