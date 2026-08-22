@@ -53,6 +53,18 @@ export async function runConsumptionExpiryCheck(): Promise<void> {
           referenceId: user.id,
         },
       }),
+      // User-visible history — shows up in GET /affiliates/:id/commissions same as
+      // any other ledger entry, so the user can see exactly when and how much expired.
+      prisma.commissionLedger.create({
+        data: {
+          recipientId: user.id,
+          amount: forfeited,
+          currency: 'FGOL',
+          status: 'EXPIRED',
+          role: 'inactivity_expiry',
+          expiredAt: now,
+        },
+      }),
     ])
   }
 

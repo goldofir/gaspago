@@ -9,7 +9,7 @@ export async function runMonthlyCommissionCron() {
 
   const affiliates = await prisma.user.findMany({
     where: { actorType: { not: 'ADMIN' } },
-    select: { id: true, affiliateStatus: true, monthsWithoutPurchase: true, lastPurchaseAt: true, fgolFrozen: true },
+    select: { id: true, affiliateStatus: true, monthsWithoutPurchase: true, lastPurchaseAt: true, fgolFrozen: true, fgolBalance: true },
   })
 
   const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -61,8 +61,11 @@ export async function runMonthlyCommissionCron() {
           where: { recipientId: affiliate.id, status: 'RELEASED' },
           data: { status: 'BLOCKED', blockedAt: now, expiresAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000) },
         }),
-        // Move released balance to frozen
-        prisma.user.update({ where: { id: affiliate.id }, data: { fgolFrozen: { increment: affiliate.fgolFrozen }, fgolBalance: 0 } }),
+        // Move released balance to frozen — was previously incrementing fgolFrozen by
+        // itself (a no-op) while zeroing fgolBalance, which silently deleted the
+        // balance instead of freezing it. Also stop any not-yet-pushed on-chain
+        // amount from queueing while the balance is frozen.
+        prisma.user.update({ where: { id: affiliate.id }, data: { fgolFrozen: { increment: affiliate.fgolBalance }, fgolBalance: 0, pendingOnChainAmount: 0 } }),
       ])
       console.log(`[cron] Blocked affiliate ${affiliate.id} — ${newCount} month(s) without purchase`)
     }
