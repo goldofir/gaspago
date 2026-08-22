@@ -526,8 +526,30 @@ model Subscription {
   asaasSubId String?  // Asaas recurring charge reference
   isActive   Boolean  @default(true)
 
+  // Which configurable Plan (price/name/features) this subscription was created
+  // against — nullable because rows created before Plan existed have none.
+  planId String?
+  planRef Plan? @relation(fields: [planId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── PLANS (SuperAdmin-configurable — price/name/features, not hardcoded) ─────
+
+model Plan {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique // stable reference used by API/mobile, e.g. "premium"
+  price        Decimal  @db.Decimal(10, 2)
+  billingCycle String   @default("MONTHLY") // "MONTHLY" | "YEARLY"
+  features     String[] // benefit bullet points shown in the upgrade UI
+  isActive     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions Subscription[]
 }
 
 // ─── SYSTEM CONFIG (credentials managed via SuperAdmin — values encrypted) ────

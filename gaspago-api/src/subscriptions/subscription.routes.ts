@@ -9,6 +9,18 @@ const ASAAS_URLS: Record<string, string> = {
 }
 
 export async function subscriptionRoutes(app: FastifyInstance) {
+  // GET /plans — public, active plans only, configured via SuperAdmin
+  app.get('/plans', async (_req, reply) => {
+    const plans = await prisma.plan.findMany({
+      where: { isActive: true },
+      orderBy: { price: 'asc' },
+      select: { id: true, name: true, slug: true, price: true, billingCycle: true, features: true },
+    })
+    // Prisma Decimal serializes to a string over JSON — coerce here so every
+    // client (web, mobile) can treat price as a real number.
+    return reply.send(plans.map(p => ({ ...p, price: Number(p.price) })))
+  })
+
   // GET /me — JWT required
   app.get('/me', async (req, reply) => {
     try {
@@ -45,10 +57,16 @@ export async function subscriptionRoutes(app: FastifyInstance) {
     }
 
     const { id: userId } = (req as any).user
-    const body = req.body as { plan: string }
+    // planId is preferred; plan/slug kept as a fallback so any existing caller
+    // still resolves to the seeded "premium" plan instead of breaking outright.
+    const body = req.body as { planId?: string; plan?: string } | undefined
 
-    if (body?.plan !== 'PREMIUM') {
-      return reply.status(400).send({ error: 'Invalid plan' })
+    const plan = body?.planId
+      ? await prisma.plan.findUnique({ where: { id: body.planId } })
+      : await prisma.plan.findUnique({ where: { slug: (body?.plan ?? 'premium').toLowerCase() } })
+
+    if (!plan || !plan.isActive) {
+      return reply.status(400).send({ error: 'Plano inválido ou indisponível.' })
     }
 
     const env = (SystemConfigService.get('ASAAS_ENV') ?? 'sandbox') as string
@@ -64,10 +82,10 @@ export async function subscriptionRoutes(app: FastifyInstance) {
         {
           customer: userId,
           billingType: 'PIX',
-          value: 29.90,
+          value: Number(plan.price),
           nextDueDate,
-          cycle: 'MONTHLY',
-          description: 'Gas Pago Premium',
+          cycle: plan.billingCycle,
+          description: `Gas Pago ${plan.name}`,
         },
         {
           headers: { access_token: apiKey },
@@ -78,7 +96,8 @@ export async function subscriptionRoutes(app: FastifyInstance) {
     }
 
     const asaasSubscriptionId: string = asaasRes.data?.id ?? null
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    const cycleDays = plan.billingCycle === 'YEARLY' ? 365 : 30
+    const expiresAt = new Date(Date.now() + cycleDays * 24 * 60 * 60 * 1000)
 
     const existing = await prisma.subscription.findFirst({ where: { userId } })
 
@@ -88,6 +107,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
         where: { id: existing.id },
         data: {
           plan: 'PREMIUM',
+          planId: plan.id,
           isActive: true,
           expiresAt,
           asaasSubId: asaasSubscriptionId,
@@ -98,6 +118,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
         data: {
           userId,
           plan: 'PREMIUM',
+          planId: plan.id,
           isActive: true,
           expiresAt,
           asaasSubId: asaasSubscriptionId,

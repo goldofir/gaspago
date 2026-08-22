@@ -27,6 +27,11 @@ services:
 
   web:
     ports: []  # em produção, para de expor 3031 diretamente — só o Caddy fica público
+    build:
+      args:
+        # Sobrescreve o http://localhost:3030 do docker-compose.yml base — este valor
+        # é assado no bundle do cliente em build time, tem que ser o domínio real.
+        NEXT_PUBLIC_API_URL: https://api.gaspago.app
 
 volumes:
   caddy_data:

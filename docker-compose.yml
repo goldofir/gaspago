@@ -36,13 +36,16 @@ services:
     build:
       context: ./gaspago-web
       dockerfile: Dockerfile
+      args:
+        # Baked into the client bundle at build time — see Dockerfile comment.
+        # Overrides .env.production's real gaspago.app domain for this local build.
+        NEXT_PUBLIC_API_URL: http://localhost:3030
     container_name: gaspago-web
     restart: unless-stopped
     ports:
       - "3031:3001"
     environment:
       API_URL: http://api:3000
-      NEXT_PUBLIC_API_URL: http://localhost:3030
     depends_on:
       - api
     networks:

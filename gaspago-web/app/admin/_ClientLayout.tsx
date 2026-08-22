@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, KeyRound, Mail, HardDrive,
-  Network, TrendingUp, ShoppingBag, ChevronRight, Menu, X, Truck, CreditCard, LogOut, Store,
+  Network, TrendingUp, ShoppingBag, ChevronRight, Menu, X, Truck, CreditCard, LogOut, Store, Package,
 } from 'lucide-react'
 import { adminLogout } from '../_components/adminFetch'
 
@@ -20,6 +20,7 @@ const nav = [
   { href: '/admin/affiliates',    label: 'Afiliados',     Icon: Network },
   { href: '/admin/revenue',        label: 'Receita',      Icon: TrendingUp },
   { href: '/admin/subscriptions',  label: 'Assinaturas',  Icon: CreditCard },
+  { href: '/admin/plans',          label: 'Planos',       Icon: Package },
 ]
 
 function NavItems({ path, onNavigate }: { path: string; onNavigate?: () => void }) {

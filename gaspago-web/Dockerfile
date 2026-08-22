@@ -7,6 +7,12 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# NEXT_PUBLIC_* vars are baked into the client bundle at build time — a runtime
+# `environment:` entry in docker-compose has no effect on them and .env.production
+# (committed for the real gaspago.app domain) would silently win otherwise. Passing
+# it as a build ARG here lets docker-compose override it for local/staging builds.
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 FROM node:20-alpine AS runner

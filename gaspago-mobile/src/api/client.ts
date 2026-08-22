@@ -87,6 +87,20 @@ export interface User {
 export const getMe = (): Promise<User> =>
   apiClient.get('/auth/me').then((r) => r.data);
 
+// ─── Subscription plans (configured in SuperAdmin, never hardcoded here) ──────
+
+export interface Plan {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  billingCycle: 'MONTHLY' | 'YEARLY';
+  features: string[];
+}
+
+export const getPlans = (): Promise<Plan[]> =>
+  apiClient.get('/subscriptions/plans').then((r) => r.data);
+
 // ─── Distributors ─────────────────────────────────────────────────────────────
 
 export interface Distributor {

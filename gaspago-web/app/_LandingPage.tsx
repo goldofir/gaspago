@@ -108,6 +108,7 @@ function useReveal() {
 export default function Home() {
   useReveal()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [loginMenuOpen, setLoginMenuOpen] = useState(false)
 
   return (
     <div className="site">
@@ -146,6 +147,24 @@ export default function Home() {
         }
         .nav-cta:hover { background: var(--flame-lt); transform: translateY(-1px); text-decoration: none; color: var(--navy); }
         .nav-burger { display: none; background: none; border: none; color: #fff; padding: 6px; }
+
+        .nav-login { position: relative; }
+        .nav-login-btn {
+          display: flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
+          color: #B9C6D8; font-size: 13.5px; font-weight: 400; font-family: inherit; padding: 0; transition: color .2s;
+        }
+        .nav-login-btn:hover { color: #fff; }
+        .nav-login-menu {
+          position: absolute; top: calc(100% + 14px); right: 0; min-width: 200px;
+          background: var(--navy-mid); border: 1px solid rgba(255,255,255,.08); border-radius: 12px;
+          padding: 8px; box-shadow: 0 20px 50px rgba(0,0,0,.4);
+          display: flex; flex-direction: column; gap: 2px;
+        }
+        .nav-login-menu a {
+          display: block; padding: 9px 12px; border-radius: 8px; color: #B9C6D8; font-size: 13.5px;
+          text-decoration: none; transition: all .15s;
+        }
+        .nav-login-menu a:hover { background: rgba(255,101,36,.12); color: #fff; text-decoration: none; }
 
         /* ——— Hero ——— */
         .hero {
@@ -332,6 +351,14 @@ export default function Home() {
           .nav-links.open { display: flex; }
           .nav-burger { display: block; z-index: 70; position: relative; }
           .nav-link { font-size: 16px; }
+          .nav-login { width: 100%; }
+          .nav-login-btn { font-size: 16px; }
+          .nav-login-menu {
+            position: static; margin-top: 10px; padding: 0; border: none; background: none;
+            box-shadow: none; box-sizing: border-box; width: 100%; gap: 10px;
+          }
+          .nav-login-menu a { padding: 0; font-size: 15px; color: #B9C6D8; }
+          .nav-login-menu a:hover { background: none; color: #fff; }
           .hero { min-height: 92vh; }
         }
       `}</style>
@@ -346,6 +373,21 @@ export default function Home() {
           <a className="nav-link" href="#fgol" onClick={() => setMenuOpen(false)}>FGOL</a>
           <a className="nav-link" href="#distribuidoras" onClick={() => setMenuOpen(false)}>Distribuidoras</a>
           <a className="nav-link" href="#marketplace" onClick={() => setMenuOpen(false)}>Marketplace</a>
+          <div className="nav-login">
+            <button className="nav-login-btn" onClick={() => setLoginMenuOpen(o => !o)} aria-expanded={loginMenuOpen}>
+              Entrar
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transform: loginMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }}>
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+            {loginMenuOpen && (
+              <div className="nav-login-menu">
+                <a href="/distributor/login" onClick={() => { setLoginMenuOpen(false); setMenuOpen(false) }}>Sou distribuidora</a>
+                <a href="/credenciador/login" onClick={() => { setLoginMenuOpen(false); setMenuOpen(false) }}>Sou credenciador</a>
+                <a href="/pos/login" onClick={() => { setLoginMenuOpen(false); setMenuOpen(false) }}>Sou estabelecimento</a>
+              </div>
+            )}
+          </div>
           <a className="nav-cta" href="#baixar" onClick={() => setMenuOpen(false)}>Baixar o app</a>
         </nav>
         <button className="nav-burger" aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'} onClick={() => setMenuOpen(o => !o)}>

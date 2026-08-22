@@ -14,7 +14,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { getMe, apiClient } from '@/api/client';
+import { getMe, getPlans, apiClient, Plan } from '@/api/client';
 import { useAuthStore } from '@/store/auth.store';
 
 const FLAME = '#FF6524';
@@ -86,6 +86,16 @@ export function ProfileScreen() {
     queryFn: getMe,
   });
 
+  const { data: plansData } = useQuery({
+    queryKey: ['plans'],
+    queryFn: getPlans,
+  });
+  // Only one paid tier exists today — first active plan returned is "the" upgrade.
+  const premiumPlan: Plan | undefined = plansData?.[0];
+  const priceLabel = premiumPlan
+    ? `R$ ${premiumPlan.price.toFixed(2).replace('.', ',')}/${premiumPlan.billingCycle === 'YEARLY' ? 'ano' : 'mês'}`
+    : '';
+
   const displayUser = meData || user;
   const name = displayUser?.name ?? 'Usuário';
   const plan = displayUser?.plan ?? 'FREE';
@@ -113,11 +123,15 @@ export function ProfileScreen() {
 
   // Upgrade to Premium: call POST /subscriptions/subscribe
   const handleUpgrade = async () => {
+    if (!premiumPlan) {
+      setUpgradeError('Nenhum plano disponível no momento.');
+      return;
+    }
     setUpgradeLoading(true);
     setUpgradeError(null);
     setPixCode(null);
     try {
-      const res = await apiClient.post('/subscriptions/subscribe');
+      const res = await apiClient.post('/subscriptions/subscribe', { planId: premiumPlan.id });
       const data = res.data as { pixQrCode?: string };
       if (data?.pixQrCode) {
         setPixCode(data.pixQrCode);
@@ -211,7 +225,7 @@ export function ProfileScreen() {
           <View style={[styles.subCard, styles.subCardPremium]}>
             <View style={styles.subCardRow}>
               <View style={styles.subCardInfo}>
-                <Text style={styles.subPlanName}>Premium R$ 29,90/mês</Text>
+                <Text style={styles.subPlanName}>{premiumPlan ? `${premiumPlan.name} ${priceLabel}` : 'Premium'}</Text>
                 <Text style={styles.subPlanDesc}>
                   Cashback dobrado + suporte prioritário
                 </Text>
@@ -262,7 +276,7 @@ export function ProfileScreen() {
               </TouchableOpacity>
 
               <Text style={styles.modalTitle}>Upgrade para Premium</Text>
-              <Text style={styles.modalSubtitle}>R$ 29,90/mês · Cancele quando quiser</Text>
+              <Text style={styles.modalSubtitle}>{priceLabel} · Cancele quando quiser</Text>
 
               {upgradeLoading && (
                 <View style={styles.modalLoadingBox}>
