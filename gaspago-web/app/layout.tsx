@@ -4,7 +4,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaspago.app'
 
 const SITE_NAME = 'Gás Pago'
 const DEFAULT_DESCRIPTION =
-  'Peça gás de cozinha pelo app ou WhatsApp e receba na sua porta. Ganhe cashback em FGOL a cada pedido e economize toda vez.'
+  'Ecossistema de compensação financeira e economia recorrente. Transforme seu consumo e compras em retornos com o token FGOL e potencialize seus ganhos com nossa rede de afiliados.'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -15,13 +15,19 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    template: `%s · ${SITE_NAME}`,
-    default: `${SITE_NAME} — Gás GLP entregue com cashback`,
+    template: '%s | Gás Pago',
+    default: 'Gás Pago - Ecossistema de Compensação Financeira & Economia Recorrente',
   },
   description: DEFAULT_DESCRIPTION,
   keywords: [
-    'gás de cozinha', 'botijão de gás', 'GLP', 'entrega de gás', 'gás online',
-    'cashback gás', 'FGOL', 'pedir gás pelo app', 'gás pago', 'distribuidora de gás',
+    'ecossistema de compensação',
+    'economia recorrente',
+    'token FGOL',
+    'rede de afiliados',
+    'cashback inteligente',
+    'fidelidade no balcão',
+    'marketplace de recompensas',
+    'gás pago',
   ],
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   creator: SITE_NAME,
