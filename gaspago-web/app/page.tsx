@@ -125,7 +125,7 @@ export default function Home() {
         .nav {
           position: fixed; top: 0; left: 0; right: 0; z-index: 50;
           display: flex; align-items: center; justify-content: space-between;
-          padding: 18px clamp(20px, 5vw, 64px);
+          padding: 12px clamp(20px, 5vw, 64px);
           background: linear-gradient(to bottom, rgba(10,22,40,.92), rgba(10,22,40,0));
           backdrop-filter: blur(2px);
         }
@@ -246,15 +246,27 @@ export default function Home() {
         .fgol-ticket .flame-txt { color: #FFB35C; }
         .fgol-ticket .cash { color: var(--gold); font-weight: 500; }
 
-        /* ——— Network ——— */
-        .net-grid { margin-top: 58px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
-        .net-card {
-          border: 1px solid rgba(255,255,255,.1); border-radius: 18px; padding: 26px 20px;
-          background: linear-gradient(160deg, rgba(255,255,255,.045), rgba(255,255,255,0));
+        /* ——— Marketplace ——— */
+        .mkt-grid { margin-top: 48px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .mkt-card {
+          border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 22px 20px;
+          background: linear-gradient(160deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+          transition: border-color .2s, background .2s, transform .2s cubic-bezier(.22,1,.36,1);
         }
-        .net-pct { font-family: 'JetBrains Mono', monospace; font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 500; color: var(--flame); letter-spacing: -.02em; }
-        .net-lv { margin-top: 6px; font-size: .82rem; color: #8DA0BB; }
-        .net-desc { margin-top: 14px; font-size: .88rem; font-weight: 300; line-height: 1.6; color: #A6B4C8; }
+        .mkt-card:hover { border-color: rgba(255,101,36,.32); background: linear-gradient(160deg, rgba(255,101,36,.09), rgba(255,255,255,0)); transform: translateY(-2px); }
+        .mkt-card-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--flame); margin-bottom: 14px; }
+        .mkt-card h3 { font-size: .98rem; font-weight: 700; color: #fff; letter-spacing: -.01em; margin-bottom: 4px; }
+        .mkt-card p { font-size: .82rem; color: #8DA0BB; font-weight: 300; line-height: 1.5; }
+        .mkt-banner {
+          margin-top: 48px; border-radius: 24px; padding: clamp(30px, 4vw, 48px);
+          background: radial-gradient(120% 220% at 85% 0%, rgba(255,101,36,.2), rgba(255,101,36,.03) 55%), var(--navy-mid);
+          border: 1px solid rgba(255,101,36,.22);
+          display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap;
+        }
+        .mkt-banner-text { max-width: 56ch; }
+        .mkt-banner-text h3 { font-size: clamp(1.25rem, 2.2vw, 1.6rem); font-weight: 800; color: #fff; letter-spacing: -.02em; line-height: 1.25; margin-bottom: 10px; }
+        .mkt-banner-text p { font-size: .95rem; color: #B9C6D8; font-weight: 300; line-height: 1.65; }
+        .mkt-banner-text strong { color: #fff; font-weight: 600; }
 
         /* ——— Distribuidoras ——— */
         .dist { background: #071120; }
@@ -294,12 +306,13 @@ export default function Home() {
 
         /* ——— Mobile ——— */
         @media (max-width: 1100px) {
-          .net-grid { grid-template-columns: repeat(3, 1fr); }
+          .mkt-grid { grid-template-columns: repeat(3, 1fr); }
         }
         @media (max-width: 860px) {
           .fgol-grid, .dist-flex { grid-template-columns: 1fr; }
           .fgol-ticket { transform: rotate(0); max-width: 420px; }
-          .net-grid { grid-template-columns: repeat(2, 1fr); }
+          .mkt-grid { grid-template-columns: repeat(2, 1fr); }
+          .mkt-banner { flex-direction: column; align-items: flex-start; }
           .steps { grid-template-columns: 1fr; }
         }
         @media (max-width: 700px) {
@@ -320,11 +333,12 @@ export default function Home() {
       {/* ————— Nav ————— */}
       <header className="nav">
         <a className="nav-brand" href="/">
-          <img src="/logo-dark.png" alt="Gás Pago" style={{ height: 30, width: 'auto' }} />
+          <img src="/logo-dark.png" alt="Gás Pago" style={{ height: 52, width: 'auto' }} />
         </a>
         <nav className={`nav-links${menuOpen ? ' open' : ''}`}>
           <a className="nav-link" href="#como-funciona" onClick={() => setMenuOpen(false)}>Como funciona</a>
           <a className="nav-link" href="#fgol" onClick={() => setMenuOpen(false)}>FGOL</a>
+          <a className="nav-link" href="#marketplace" onClick={() => setMenuOpen(false)}>Marketplace</a>
           <a className="nav-link" href="#distribuidoras" onClick={() => setMenuOpen(false)}>Distribuidoras</a>
           <a className="nav-cta" href="#baixar" onClick={() => setMenuOpen(false)}>Baixar o app</a>
         </nav>
@@ -341,8 +355,8 @@ export default function Home() {
         <div className="hero-inner">
           <h1>Seu gás chega em minutos.<br /><span className="pay">E ele paga você de volta.</span></h1>
           <p className="hero-sub">
-            Peça o botijão pelo app ou WhatsApp, receba da distribuidora mais próxima
-            e ganhe cashback em FGOL a cada pedido. Simples assim.
+            Peça o botijão pelo app ou WhatsApp, pague como quiser — PIX, cartão ou FGOL —
+            e ganhe cashback a cada entrega. Peça, pague e ganhe: simples assim.
           </p>
           <div className="hero-ctas">
             <a className="btn-primary" href="#baixar">
@@ -361,22 +375,22 @@ export default function Home() {
       <section className="sec" id="como-funciona">
         <div className="sec-inner">
           <div data-reveal>
-            <h2>Do pedido à chama acesa,<br />em três passos.</h2>
+            <h2>Peça, pague e ganhe.<br />Do pedido à chama acesa, em minutos.</h2>
           </div>
           <div className="steps" data-reveal>
             <div className="step">
               <span className="step-n">01</span>
-              <h3>Peça onde preferir</h3>
+              <h3>Peça</h3>
               <p>Pelo <strong>app</strong> ou direto no <strong>WhatsApp</strong> — digite &ldquo;gás&rdquo;, informe o CEP e escolha a distribuidora com o melhor preço, nota e prazo.</p>
             </div>
             <div className="step">
               <span className="step-n">02</span>
-              <h3>Receba em minutos</h3>
-              <p>A distribuidora <strong>mais próxima</strong> aceita na hora. Pague com <strong>PIX</strong>, cartão ou seu próprio saldo FGOL — sem dinheiro na porta.</p>
+              <h3>Pague</h3>
+              <p><strong>PIX</strong>, cartão ou seu próprio saldo <strong>FGOL</strong>. A distribuidora mais próxima aceita na hora e já sai pra entregar.</p>
             </div>
             <div className="step">
               <span className="step-n">03</span>
-              <h3>Ganhe de volta</h3>
+              <h3>Ganhe</h3>
               <p>Entrega confirmada, <strong>cashback em FGOL</strong> cai na sua carteira automaticamente. Junte e pague o próximo botijão com ele.</p>
             </div>
           </div>
@@ -421,6 +435,74 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ————— Marketplace ————— */}
+      <section className="sec" id="marketplace">
+        <div className="sec-inner">
+          <div data-reveal>
+            <h2>FGOL não para no gás.</h2>
+            <p className="sec-lead">
+              Um marketplace só seu, dentro do app: comida, saúde, beleza, casa e dezenas de outros
+              segmentos — cada compra rende cashback e alimenta a mesma carteira do botijão.
+            </p>
+          </div>
+
+          <div className="mkt-grid" data-reveal>
+            <div className="mkt-card">
+              <span className="mkt-card-dot" aria-hidden="true" />
+              <h3>Restaurantes</h3>
+              <p>Delivery e balcão com cashback em FGOL</p>
+            </div>
+            <div className="mkt-card">
+              <span className="mkt-card-dot" aria-hidden="true" />
+              <h3>Farmácias</h3>
+              <p>Remédios e itens de cuidado pessoal</p>
+            </div>
+            <div className="mkt-card">
+              <span className="mkt-card-dot" aria-hidden="true" />
+              <h3>Mercados</h3>
+              <p>Do hortifruti ao armazém da esquina</p>
+            </div>
+            <div className="mkt-card">
+              <span className="mkt-card-dot" aria-hidden="true" />
+              <h3>Beleza &amp; Estética</h3>
+              <p>Salões, barbearias e clínicas parceiras</p>
+            </div>
+            <div className="mkt-card">
+              <span className="mkt-card-dot" aria-hidden="true" />
+              <h3>Serviços em casa</h3>
+              <p>Encanador, eletricista, diarista, reformas</p>
+            </div>
+            <div className="mkt-card">
+              <span className="mkt-card-dot" aria-hidden="true" />
+              <h3>Pet</h3>
+              <p>Banho, tosa, veterinário e petshop</p>
+            </div>
+            <div className="mkt-card">
+              <span className="mkt-card-dot" aria-hidden="true" />
+              <h3>Educação</h3>
+              <p>Aulas particulares e cursos livres</p>
+            </div>
+            <div className="mkt-card">
+              <span className="mkt-card-dot" aria-hidden="true" />
+              <h3>Automotivo</h3>
+              <p>Oficinas, lavagem e revisão</p>
+            </div>
+          </div>
+
+          <div className="mkt-banner" data-reveal>
+            <div className="mkt-banner-text">
+              <h3>Tem um negócio ou presta serviço? Anuncie no marketplace.</h3>
+              <p>
+                Qualquer estabelecimento ou profissional pode entrar — de qualquer segmento.
+                Você aparece pra clientes da sua região, recebe via PIX e paga uma <strong>comissão
+                por venda para a rede de afiliados</strong> que trouxe o cliente até você. Sem
+                mensalidade, sem taxa fixa: só paga quando vende.
+              </p>
+            </div>
+            <a className="btn-primary" href="https://wa.me/" target="_blank" rel="noopener noreferrer">Quero anunciar</a>
+          </div>
+        </div>
+      </section>
 
       {/* ————— Distribuidoras ————— */}
       <section className="sec dist" id="distribuidoras">
@@ -483,11 +565,12 @@ export default function Home() {
       {/* ————— Footer ————— */}
       <footer className="footer">
         <div className="footer-brand">
-          <img src="/logo-dark.png" alt="Gás Pago" style={{ height: 24, width: 'auto' }} />
+          <img src="/logo-dark.png" alt="Gás Pago" style={{ height: 38, width: 'auto' }} />
         </div>
         <div className="footer-links">
           <a href="#como-funciona">Como funciona</a>
           <a href="#fgol">FGOL</a>
+          <a href="#marketplace">Marketplace</a>
           <a href="#distribuidoras">Distribuidoras</a>
           <a href="/termos">Termos</a>
           <a href="/privacidade">Privacidade</a>
