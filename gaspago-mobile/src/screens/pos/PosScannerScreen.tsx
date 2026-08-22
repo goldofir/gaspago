@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { apiClient } from '@/api/client';
+import { scanPosQr } from '@/api/client';
 
 const FLAME = '#FF6524';
 const NAVY = '#0A1628';
@@ -47,11 +47,8 @@ export function PosScannerScreen() {
     if (!qrToken) return;
     setStep('processing');
     try {
-      const res = await apiClient.post('/pos/scan', {
-        qrToken,
-        fgolToUse: parseFloat(fgolToUse) || 0,
-      });
-      setResult(res.data);
+      const res = await scanPosQr(qrToken, parseFloat(fgolToUse) || 0);
+      setResult(res);
       setStep('success');
     } catch (err: any) {
       Alert.alert('Erro', err?.response?.data?.error ?? 'Falha ao processar pagamento.');

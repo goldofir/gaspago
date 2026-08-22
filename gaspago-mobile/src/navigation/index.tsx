@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 import { PhoneScreen } from '@/screens/auth/PhoneScreen';
 import { OtpScreen } from '@/screens/auth/OtpScreen';
@@ -32,7 +33,7 @@ export type MainTabParamList = {
 };
 
 export type MainStackParamList = {
-  MainTabs: undefined;
+  MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   OrderConfirm: {
     distributorId: string;
     distributorName: string;

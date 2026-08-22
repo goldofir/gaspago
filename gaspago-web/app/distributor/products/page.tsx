@@ -10,12 +10,10 @@ type Product = {
   name: string
   description?: string
   price: number
-  weightKg: number
   isAvailable: boolean
-  stock?: number
 }
 
-const emptyForm = { name: '', description: '', price: '', weightKg: '13', stock: '' }
+const emptyForm = { name: '', description: '', price: '' }
 
 export default function DistributorProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -63,8 +61,6 @@ export default function DistributorProductsPage() {
           name: form.name,
           description: form.description,
           price: parseFloat(form.price),
-          weightKg: parseFloat(form.weightKg),
-          stock: form.stock ? parseInt(form.stock) : undefined,
           isAvailable: true,
         }),
       })
@@ -107,13 +103,14 @@ export default function DistributorProductsPage() {
       {showForm && (
         <form onSubmit={submitForm} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '22px 24px', marginBottom: 24 }}>
           <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 18 }}>Novo produto</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12, marginBottom: 8 }}>
             {inp('name', 'Nome', 'text', 'Ex: Botijão 13kg')}
             {inp('price', 'Preço (R$)', 'number', '109.90')}
-            {inp('weightKg', 'Peso (kg)', 'number', '13')}
-            {inp('stock', 'Estoque (opcional)', 'number', '')}
             {inp('description', 'Descrição (opcional)')}
           </div>
+          <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 16 }}>
+            Dica: inclua o peso no nome do produto, ex: "Botijão 13kg".
+          </p>
           <button
             type="submit" disabled={saving}
             style={{ padding: '10px 22px', borderRadius: 9, background: 'var(--flame)', color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
@@ -139,7 +136,6 @@ export default function DistributorProductsPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.name}</p>
-                  <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{p.weightKg}kg</p>
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: p.isAvailable ? '#10B98118' : '#EF444418', color: p.isAvailable ? '#10B981' : '#EF4444' }}>
                   {p.isAvailable ? 'Disponível' : 'Indisponível'}
@@ -154,9 +150,6 @@ export default function DistributorProductsPage() {
                 <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)' }}>
                   R$ {Number(p.price).toFixed(2).replace('.', ',')}
                 </span>
-                {p.stock !== undefined && (
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Estoque: {p.stock}</span>
-                )}
               </div>
 
               <button

@@ -9,6 +9,7 @@ import {
   Modal,
   ActivityIndicator,
   Pressable,
+  Linking,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
@@ -80,6 +81,9 @@ export function ProfileScreen() {
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
   const [pixCopied, setPixCopied] = useState(false);
+
+  // Cancel subscription state
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   const { data: meData } = useQuery({
     queryKey: ['me'],
@@ -169,6 +173,44 @@ export function ProfileScreen() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Cancel Premium subscription: call POST /subscriptions/cancel
+  const handleCancelSubscription = () => {
+    Alert.alert(
+      'Cancelar assinatura',
+      'Tem certeza que quer cancelar sua assinatura Premium?',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Cancelar assinatura',
+          style: 'destructive',
+          onPress: async () => {
+            setCancelLoading(true);
+            try {
+              await apiClient.post('/subscriptions/cancel');
+              await fetchSubscription();
+            } catch (err: unknown) {
+              const e = err as { response?: { data?: { message?: string } } };
+              Alert.alert(
+                'Erro',
+                e?.response?.data?.message ?? 'Não foi possível cancelar a assinatura.',
+              );
+            } finally {
+              setCancelLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // Open support WhatsApp chat
+  const handleOpenSupport = () => {
+    // TODO: no real support WhatsApp number is configured anywhere in the codebase
+    // yet (same limitation as the "wa.me" links on the web landing page) — swap in
+    // the actual number once it exists.
+    Linking.openURL('https://wa.me/');
+  };
+
   const handleLogout = () => {
     Alert.alert('Sair da conta', 'Tem certeza que deseja sair?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -232,8 +274,12 @@ export function ProfileScreen() {
               </View>
               <Text style={styles.subPlanEmoji}>🏆</Text>
             </View>
-            <TouchableOpacity>
-              <Text style={styles.cancelLink}>Cancelar assinatura</Text>
+            <TouchableOpacity onPress={handleCancelSubscription} disabled={cancelLoading}>
+              {cancelLoading ? (
+                <ActivityIndicator color="#5A3E00" size="small" />
+              ) : (
+                <Text style={styles.cancelLink}>Cancelar assinatura</Text>
+              )}
             </TouchableOpacity>
           </View>
         ) : (
@@ -357,7 +403,7 @@ export function ProfileScreen() {
             <Text style={styles.actionChevron}>›</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.actionRow}>
+          <TouchableOpacity style={styles.actionRow} onPress={handleOpenSupport}>
             <Text style={styles.actionIcon}>💬</Text>
             <Text style={styles.actionLabel}>Suporte</Text>
             <Text style={styles.actionChevron}>›</Text>

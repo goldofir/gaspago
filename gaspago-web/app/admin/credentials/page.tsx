@@ -21,6 +21,7 @@ const GROUP_META: Record<string, { label: string; desc: string; color: string }>
   web3auth: { label: 'Web3Auth',        desc: 'Carteiras embedded (MPC)',       color: '#EA580C' },
   auth:     { label: 'Autenticação',   desc: 'JWT e chaves de sessão',         color: '#DC2626' },
   email:    { label: 'E-mail SMTP',    desc: 'Servidor de envio',              color: '#0284C7' },
+  google:   { label: 'Google OAuth',   desc: 'Login social',                   color: '#4285F4' },
 }
 
 type Credential = {

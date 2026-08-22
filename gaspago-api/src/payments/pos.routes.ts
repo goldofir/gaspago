@@ -35,6 +35,11 @@ async function getMeEstablishment(establishmentId?: string) {
 const requireEstablishment = requireRole('ESTABLISHMENT')
 
 export async function posRoutes(app: FastifyInstance) {
+  // GET /pos/me — establishment profile for the logged-in POS account
+  app.get('/me', { preHandler: requireEstablishment }, async (req) => {
+    return getMeEstablishment((req as any).user?.establishmentId)
+  })
+
   // POST /pos/charge — POS web panel generates QR charge
   app.post('/charge', { preHandler: requireEstablishment }, async (req, reply) => {
     const body = GenerateQrSchema.parse(req.body)

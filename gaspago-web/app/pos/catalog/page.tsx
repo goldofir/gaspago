@@ -19,7 +19,7 @@ type CatalogItem = {
 const emptyForm = { name: '', description: '', price: '', imageUrl: '', isAvailable: true }
 
 function formatPrice(price: string | number) {
-  return `R$ ${Number(price).toFixed(2)}`
+  return `R$ ${Number(price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export default function PosCatalogPage() {

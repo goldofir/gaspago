@@ -4,6 +4,8 @@ import * as Device from 'expo-device'
 import Constants from 'expo-constants'
 import { Platform } from 'react-native'
 import { useAuthStore } from '../store/auth.store'
+import { apiClient } from '../api/client'
+import { navigateToOrders } from '../navigation/navigationRef'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -45,7 +47,6 @@ export function usePushNotifications() {
   const { token: authToken } = useAuthStore()
   const notifListener = useRef<Notifications.Subscription | undefined>(undefined)
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined)
-  const API = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.0.100:3030'
 
   useEffect(() => {
     if (!authToken) return
@@ -53,11 +54,7 @@ export function usePushNotifications() {
     registerForPushNotifications().then(async (pushToken) => {
       if (!pushToken) return
       try {
-        await fetch(API + '/notifications/device-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
-          body: JSON.stringify({ pushToken }),
-        })
+        await apiClient.post('/notifications/device-token', { pushToken })
       } catch (e) {
         console.log('Push token registration failed:', e)
       }
@@ -68,9 +65,11 @@ export function usePushNotifications() {
     })
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data
+      const data = response.notification.request.content.data as { orderId?: string } | undefined
       console.log('Notification tapped:', data)
-      // TODO: navigate to relevant screen based on data.orderId, etc.
+      if (data?.orderId) {
+        navigateToOrders()
+      }
     })
 
     return () => {

@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import { AuthNavigator } from '@/navigation';
 import { MainNavigator } from '@/navigation';
+import { navigationRef } from '@/navigation/navigationRef';
 import { useAuthStore } from '@/store/auth.store';
 import { usePushNotifications } from './src/hooks/usePushNotifications';
 
@@ -47,7 +48,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           <StatusBar style="light" backgroundColor="#0A1628" />
           {token ? <MainNavigator /> : <AuthNavigator />}
         </NavigationContainer>

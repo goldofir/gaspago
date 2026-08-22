@@ -1,13 +1,14 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { QrCode, RefreshCw, CheckCircle2 } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { portalFetch } from '../_components/portalFetch'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 const TOKEN_KEY = 'gp_pos_token'
 
 type Step = 'keypad' | 'qr' | 'success'
-type ChargeResponse = { id: string; qrToken: string; qrCode: string; expiresAt: string }
+type ChargeResponse = { id: string; qrToken: string; expiresAt: string }
 type StatusResponse = { status: string; fgolUsed: number; pixAmount: number; cashbackAmount: number }
 
 const KEYPAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', '⌫']
@@ -150,14 +151,10 @@ export default function PosPage() {
         </div>
 
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: '32px', boxShadow: 'var(--shadow)' }}>
-          {/* QR Code image */}
-          {charge.qrCode ? (
-            <img src={`data:image/png;base64,${charge.qrCode}`} alt="QR Code" style={{ width: 260, height: 260, borderRadius: 12, display: 'block', margin: '0 auto 20px' }} />
-          ) : (
-            <div style={{ width: 260, height: 260, background: 'var(--ground)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-              <QrCode size={80} color="var(--muted)" />
-            </div>
-          )}
+          {/* QR Code real, gerado a partir do qrToken (JWT) retornado por POST /pos/charge */}
+          <div style={{ width: 260, height: 260, background: '#fff', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <QRCodeSVG value={charge.qrToken} size={220} />
+          </div>
 
           <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>{displayAmount}</div>
 

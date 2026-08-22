@@ -16,6 +16,10 @@ type Payment = {
   settledAt?: string
 }
 
+function formatPrice(value: string | number) {
+  return `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   PAID:            { label: 'Pago',      color: '#10B981' },
   AWAITING_SCAN:   { label: 'Aguardando Scan', color: '#F59E0B' },
@@ -64,9 +68,9 @@ export default function PosHistoryPage() {
                   return (
                     <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 14px', color: 'var(--muted)', fontSize: 12 }}>{new Date(p.createdAt).toLocaleString('pt-BR')}</td>
-                      <td style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text)' }}>R$ {Number(p.totalAmount).toFixed(2)}</td>
-                      <td style={{ padding: '12px 14px', color: 'var(--muted)' }}>R$ {Number(p.fgolBrlValue).toFixed(2)}</td>
-                      <td style={{ padding: '12px 14px', color: 'var(--muted)' }}>R$ {Number(p.pixAmount).toFixed(2)}</td>
+                      <td style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text)' }}>{formatPrice(p.totalAmount)}</td>
+                      <td style={{ padding: '12px 14px', color: 'var(--muted)' }}>{formatPrice(p.fgolBrlValue)}</td>
+                      <td style={{ padding: '12px 14px', color: 'var(--muted)' }}>{formatPrice(p.pixAmount)}</td>
                       <td style={{ padding: '12px 14px', color: 'var(--muted)' }}>{Math.round(p.cashbackPercent * 100)}%</td>
                       <td style={{ padding: '12px 14px' }}>
                         <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${s.color}18`, color: s.color }}>

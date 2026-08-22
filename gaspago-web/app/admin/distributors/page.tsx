@@ -608,7 +608,7 @@ function DistributorCard({
               borderRadius: 6,
             }}
           >
-            {distributor.cashbackPercent}% cashback
+            {Math.round((distributor.cashbackPercent ?? 0) * 100)}% cashback
           </span>
           <StarRating rating={distributor.rating} />
         </div>
@@ -932,7 +932,7 @@ export default function DistributorsPage() {
                             borderRadius: 6,
                           }}
                         >
-                          {d.cashbackPercent}%
+                          {Math.round((d.cashbackPercent ?? 0) * 100)}%
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px' }}>
