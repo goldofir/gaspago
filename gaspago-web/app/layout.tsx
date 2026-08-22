@@ -4,7 +4,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaspago.app'
 
 const SITE_NAME = 'Gás Pago'
 const DEFAULT_DESCRIPTION =
-  'Plataforma de economia compartilhada e sistema de compensação. Transforme seu consumo e compras em retornos financeiros com o token FGOL e nossa rede de afiliados.'
+  'Quanto você ganha para consumir hoje? E se pudesse ganhar R$ 1 de cada brasileiro todo mês? Conheça o Gás Pago: plataforma de economia compartilhada e sistema de compensação com token FGOL e rede de afiliados.'
+
 
 export const viewport: Viewport = {
   width: 'device-width',
