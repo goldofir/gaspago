@@ -1,8 +1,64 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaspago.com.br'
+const SITE_NAME = 'Gás Pago'
+const DEFAULT_DESCRIPTION =
+  'Peça gás de cozinha pelo app ou WhatsApp e receba na sua porta. Ganhe cashback em FGOL a cada pedido e economize toda vez.'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#FF6524',
+}
 
 export const metadata: Metadata = {
-  title: { template: '%s · Gás Pago', default: 'Gás Pago — Seu gás chega em minutos. E ele paga você de volta.' },
-  description: 'Peça o botijão pelo app ou WhatsApp, receba da distribuidora mais próxima e ganhe cashback em FGOL a cada pedido.',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    template: `%s · ${SITE_NAME}`,
+    default: `${SITE_NAME} — Gás GLP entregue com cashback`,
+  },
+  description: DEFAULT_DESCRIPTION,
+  keywords: [
+    'gás de cozinha', 'botijão de gás', 'GLP', 'entrega de gás', 'gás online',
+    'cashback gás', 'FGOL', 'pedir gás pelo app', 'gás pago', 'distribuidora de gás',
+  ],
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
+  },
+  alternates: {
+    canonical: SITE_URL,
+    languages: { 'pt-BR': SITE_URL },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'pt_BR',
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — Gás GLP entregue com cashback`,
+    description: DEFAULT_DESCRIPTION,
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Gás Pago — Peça gás e ganhe cashback',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@gaspago',
+    creator: '@gaspago',
+    title: `${SITE_NAME} — Gás GLP entregue com cashback`,
+    description: DEFAULT_DESCRIPTION,
+    images: ['/og-image.png'],
+  },
   icons: {
     icon: [
       { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
@@ -11,9 +67,43 @@ export const metadata: Metadata = {
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: '/apple-touch-icon.png',
+    shortcut: '/favicon-32.png',
   },
-  viewport: { width: 'device-width', initialScale: 1 },
+  manifest: '/manifest.json',
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION ?? '',
+  },
+  category: 'technology',
 }
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo.png`,
+  sameAs: [],
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer service',
+    availableLanguage: 'Portuguese',
+  },
+}
+
+const softwareAppSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: SITE_NAME,
+  applicationCategory: 'LifestyleApplication',
+  operatingSystem: 'iOS, Android',
+  description: DEFAULT_DESCRIPTION,
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'BRL',
+  },
+}
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -83,7 +173,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
         `}</style>
       </head>
-      <body>{children}</body>
+      <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
+        />
+        {children}
+      </body>
     </html>
   )
 }
+

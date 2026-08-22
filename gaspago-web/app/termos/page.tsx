@@ -1,9 +1,20 @@
 import type { Metadata } from 'next'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaspago.com.br'
+
 export const metadata: Metadata = {
   title: 'Termos de Uso',
-  description: 'Termos de Uso da plataforma Gás Pago — entrega de GLP, rede de afiliados e cashback FGOL.',
+  description: 'Termos de Uso da plataforma Gás Pago: entrega de GLP, cashback FGOL e condições de uso do serviço.',
+  keywords: ['termos de uso', 'condições de serviço', 'Gás Pago', 'GLP', 'FGOL'],
+  alternates: { canonical: `${SITE_URL}/termos` },
+  openGraph: {
+    title: 'Termos de Uso · Gás Pago',
+    description: 'Termos de Uso da plataforma Gás Pago: entrega de GLP, cashback FGOL e condições de uso.',
+    url: `${SITE_URL}/termos`,
+    type: 'article',
+  },
 }
+
 
 export default function TermosDeUso() {
   return (

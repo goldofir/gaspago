@@ -1,9 +1,20 @@
 import type { Metadata } from 'next'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaspago.com.br'
+
 export const metadata: Metadata = {
   title: 'Política de Privacidade',
-  description: 'Como o Gás Pago coleta, usa e protege dados pessoais, em conformidade com a LGPD.',
+  description: 'Saiba como o Gás Pago coleta, usa e protege seus dados pessoais, em conformidade com a LGPD (Lei Geral de Proteção de Dados).',
+  keywords: ['política de privacidade', 'LGPD', 'proteção de dados', 'Gás Pago'],
+  alternates: { canonical: `${SITE_URL}/privacidade` },
+  openGraph: {
+    title: 'Política de Privacidade · Gás Pago',
+    description: 'Saiba como o Gás Pago coleta, usa e protege seus dados pessoais conforme a LGPD.',
+    url: `${SITE_URL}/privacidade`,
+    type: 'article',
+  },
 }
+
 
 export default function PoliticaDePrivacidade() {
   return (

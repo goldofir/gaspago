@@ -1,4 +1,12 @@
 'use client'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Estabelecimentos',
+  description: 'Estabelecimentos parceiros vinculados ao seu credenciamento no Gás Pago.',
+  robots: { index: false, follow: false },
+}
+
 import { useState, useEffect } from 'react'
 import { portalFetch } from '../../_components/portalFetch'
 

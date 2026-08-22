@@ -1,4 +1,12 @@
 'use client'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'POS · Ponto de Venda',
+  description: 'Terminal de ponto de venda do Gás Pago. Gere cobranças e aceite pagamentos.',
+  robots: { index: false, follow: false },
+}
+
 import { useState, useEffect, useRef } from 'react'
 import { QrCode, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { portalFetch } from '../_components/portalFetch'

@@ -1,4 +1,12 @@
 'use client'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Dashboard Distribuidora',
+  description: 'Painel da distribuidora no Gás Pago. Gerencie pedidos, produtos e seu perfil.',
+  robots: { index: false, follow: false },
+}
+
 import { useState, useEffect } from 'react'
 import { ShoppingBag, Truck, Star, TrendingUp } from 'lucide-react'
 import { portalFetch } from '../_components/portalFetch'

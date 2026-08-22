@@ -1,4 +1,12 @@
 'use client'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Assinaturas',
+  description: 'Gestão de planos e assinaturas das distribuidoras parceiras.',
+  robots: { index: false, follow: false },
+}
+
 
 import { useEffect, useState } from 'react'
 import { Crown, Users, XCircle, TrendingUp, Loader2 } from 'lucide-react'

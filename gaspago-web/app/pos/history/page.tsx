@@ -1,4 +1,12 @@
 'use client'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Histórico de Vendas',
+  description: 'Histórico de transações e vendas do terminal POS Gás Pago.',
+  robots: { index: false, follow: false },
+}
+
 import { useState, useEffect } from 'react'
 import { portalFetch } from '../../_components/portalFetch'
 

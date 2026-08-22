@@ -1,4 +1,12 @@
 'use client'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Distribuidoras Credenciadas',
+  description: 'Lista de distribuidoras vinculadas ao seu credenciamento no Gás Pago.',
+  robots: { index: false, follow: false },
+}
+
 import { useState, useEffect } from 'react'
 import { portalFetch } from '../../_components/portalFetch'
 

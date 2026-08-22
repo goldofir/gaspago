@@ -1,4 +1,12 @@
 'use client'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Afiliados',
+  description: 'Gerenciamento de afiliados e comissões da rede Gás Pago.',
+  robots: { index: false, follow: false },
+}
+
 
 import { useEffect, useState, useCallback } from 'react'
 import { adminFetch } from '../../_components/adminFetch'
