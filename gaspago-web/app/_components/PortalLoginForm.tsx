@@ -85,14 +85,7 @@ export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
         }
         .plf-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 420px; gap: 28px; }
         .plf-brand { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-        .plf-icon {
-          width: 56px; height: 56px; border-radius: 14px;
-          display: flex; align-items: center; justify-content: center;
-          filter: drop-shadow(0 4px 20px rgba(255,101,36,.35));
-        }
-        .plf-icon img { width: 100%; height: 100%; border-radius: 14px; }
-        .plf-wordmark { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 22px; color: #fff; letter-spacing: -.01em; }
-        .plf-wordmark span { color: #FF6524; }
+        .plf-logo { height: 46px; width: auto; filter: drop-shadow(0 4px 20px rgba(255,101,36,.25)); }
         .plf-subtitle { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin-top: -6px; }
         .plf-card { width: 100%; background: #fff; border-radius: 20px; padding: 36px; box-shadow: 0 8px 32px rgba(0,0,0,.16); }
         .plf-title { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 20px; color: #0F2040; margin-bottom: 6px; }
@@ -137,11 +130,8 @@ export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
       <div className="plf-body">
         <div className="plf-wrap">
           <div className="plf-brand">
-            <div className="plf-icon">
-              <img src="/icon-192.png" alt="Gás Pago" />
-            </div>
+            <img src="/logo-dark.png" alt="Gás Pago" className="plf-logo" />
             <div style={{ textAlign: 'center' }}>
-              <div className="plf-wordmark">GÁS<span>PAGO</span></div>
               <div className="plf-subtitle" style={{ color: meta.accent }}>{meta.label}</div>
             </div>
           </div>

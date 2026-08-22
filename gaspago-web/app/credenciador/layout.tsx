@@ -69,8 +69,7 @@ export default function CredenciadorLayout({ children }: { children: ReactNode }
 
       <div className="cred-topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <img src="/icon-192.png" alt="" width={28} height={28} style={{ borderRadius: 7, flexShrink: 0 }} />
-          <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 14, color: '#fff' }}>GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span></span>
+          <img src="/logo-dark.png" alt="Gás Pago" style={{ height: 22, width: 'auto' }} />
         </div>
         <button onClick={() => setOpen(o => !o)} style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, color: '#fff', cursor: 'pointer', padding: '6px 8px', display: 'flex', alignItems: 'center' }}>
           {open ? <X size={18} /> : <Menu size={18} />}
@@ -80,10 +79,7 @@ export default function CredenciadorLayout({ children }: { children: ReactNode }
       <aside className={`cred-sidebar${open ? ' open' : ''}`}>
         <div style={{ padding: '22px 20px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <img src="/icon-192.png" alt="" width={32} height={32} style={{ borderRadius: 8, flexShrink: 0 }} />
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 15, color: '#fff' }}>
-              GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span>
-            </div>
+            <img src="/logo-dark.png" alt="Gás Pago" style={{ height: 26, width: 'auto' }} />
           </div>
           <div style={{ marginTop: 10, padding: '4px 8px', borderRadius: 5, background: 'rgba(245,158,11,.12)', border: '1px solid rgba(245,158,11,.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
             <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#F59E0B' }} />

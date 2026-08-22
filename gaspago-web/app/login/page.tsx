@@ -105,26 +105,11 @@ export default function LoginPage() {
           gap: 12px;
         }
 
-        .brand-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          filter: drop-shadow(0 4px 20px rgba(255,101,36,.35));
+        .brand-logo {
+          height: 46px;
+          width: auto;
+          filter: drop-shadow(0 4px 20px rgba(255,101,36,.25));
         }
-        .brand-icon img { width: 100%; height: 100%; border-radius: 14px; }
-
-        .brand-wordmark {
-          font-family: 'Sora', sans-serif;
-          font-weight: 800;
-          font-size: 22px;
-          color: #fff;
-          letter-spacing: -.01em;
-        }
-
-        .brand-wordmark span { color: var(--flame); }
 
         .brand-subtitle {
           font-size: 11px;
@@ -282,13 +267,8 @@ export default function LoginPage() {
       <div className="login-wrapper">
         {/* Brand block */}
         <div className="brand-block">
-          <div className="brand-icon">
-            <img src="/icon-192.png" alt="Gás Pago" />
-          </div>
+          <img src="/logo-dark.png" alt="Gás Pago" className="brand-logo" />
           <div style={{ textAlign: 'center' }}>
-            <div className="brand-wordmark">
-              GÁS<span>PAGO</span>
-            </div>
             <div className="brand-subtitle">Painel SuperAdmin</div>
           </div>
         </div>

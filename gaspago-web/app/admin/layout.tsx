@@ -124,10 +124,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Mobile top bar */}
       <div className="admin-topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <img src="/icon-192.png" alt="" width={28} height={28} style={{ borderRadius: 7, flexShrink: 0 }} />
-          <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 14, color: '#fff', letterSpacing: '-.01em' }}>
-            GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span>
-          </span>
+          <img src="/logo-dark.png" alt="Gás Pago" style={{ height: 22, width: 'auto' }} />
         </div>
         <button onClick={() => setOpen(o => !o)} style={{
           background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)',
@@ -144,10 +141,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {/* Brand */}
         <div style={{ padding: '22px 20px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <img src="/icon-192.png" alt="" width={32} height={32} style={{ borderRadius: 8, flexShrink: 0 }} />
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 15, color: '#fff', letterSpacing: '-.01em' }}>
-              GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span>
-            </div>
+            <img src="/logo-dark.png" alt="Gás Pago" style={{ height: 26, width: 'auto' }} />
           </div>
           <div style={{
             marginTop: 10, padding: '4px 8px', borderRadius: 5,

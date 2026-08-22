@@ -320,8 +320,7 @@ export default function Home() {
       {/* ————— Nav ————— */}
       <header className="nav">
         <a className="nav-brand" href="/">
-          <img src="/icon-192.png" alt="" width={30} height={30} style={{ borderRadius: 9, flexShrink: 0 }} />
-          GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span>
+          <img src="/logo-dark.png" alt="Gás Pago" style={{ height: 30, width: 'auto' }} />
         </a>
         <nav className={`nav-links${menuOpen ? ' open' : ''}`}>
           <a className="nav-link" href="#como-funciona" onClick={() => setMenuOpen(false)}>Como funciona</a>
@@ -484,8 +483,7 @@ export default function Home() {
       {/* ————— Footer ————— */}
       <footer className="footer">
         <div className="footer-brand">
-          <img src="/icon-192.png" alt="" width={24} height={24} style={{ borderRadius: 7, flexShrink: 0 }} />
-          GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span>
+          <img src="/logo-dark.png" alt="Gás Pago" style={{ height: 24, width: 'auto' }} />
         </div>
         <div className="footer-links">
           <a href="#como-funciona">Como funciona</a>
