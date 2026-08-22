@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto'
 import { prisma } from '../shared/prisma'
 import { requireAuth } from '../shared/auth.middleware'
 import { distributeCommissionsPos } from '../commissions/pos-commission.service'
+import { queueRedemptionPullback } from '../wallet/wallet-treasury.service'
 import { config } from '../config'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -114,6 +115,13 @@ export async function marketplaceRoutes(app: FastifyInstance) {
     })
 
     await distributeCommissionsPos(posPayment)
+
+    // DB balance already settled the purchase above — pulling the equivalent FGOL
+    // back from the user's wallet on-chain is queued for the background worker and
+    // never blocks the payment.
+    if (body.fgolToUse > 0) {
+      await queueRedemptionPullback(customerId, body.fgolToUse, 'marketplace_payment', posPayment.id)
+    }
 
     return reply.status(201).send({
       posPaymentId: posPayment.id,

@@ -60,9 +60,9 @@ export async function distributeCommissionsPos(pos: PosPayment) {
   if (customer) {
     const consumerAmount = margin * consumerPct
     if (isActive(customer.affiliateStatus)) {
-      await prisma.user.update({ where: { id: customer.id }, data: { fgolBalance: { increment: consumerAmount }, lastPurchaseAt: new Date(), monthsWithoutPurchase: 0 } })
+      await prisma.user.update({ where: { id: customer.id }, data: { fgolBalance: { increment: consumerAmount }, pendingOnChainAmount: { increment: consumerAmount }, lastPurchaseAt: new Date(), lastConsumptionAt: new Date(), monthsWithoutPurchase: 0 } })
     } else {
-      await prisma.user.update({ where: { id: customer.id }, data: { fgolFrozen: { increment: consumerAmount }, lastPurchaseAt: new Date(), affiliateStatus: 'ACTIVE', monthsWithoutPurchase: 0 } })
+      await prisma.user.update({ where: { id: customer.id }, data: { fgolFrozen: { increment: consumerAmount }, lastPurchaseAt: new Date(), lastConsumptionAt: new Date(), affiliateStatus: 'ACTIVE', monthsWithoutPurchase: 0 } })
     }
   }
 }

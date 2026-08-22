@@ -23,7 +23,7 @@ export async function runMonthlyCommissionCron() {
         await prisma.$transaction([
           prisma.user.update({
             where: { id: affiliate.id },
-            data: { affiliateStatus: 'ACTIVE', monthsWithoutPurchase: 0, fgolBalance: { increment: affiliate.fgolFrozen }, fgolFrozen: 0 },
+            data: { affiliateStatus: 'ACTIVE', monthsWithoutPurchase: 0, fgolBalance: { increment: affiliate.fgolFrozen }, pendingOnChainAmount: { increment: affiliate.fgolFrozen }, fgolFrozen: 0 },
           }),
           prisma.commissionLedger.updateMany({
             where: { recipientId: affiliate.id, status: 'BLOCKED' },

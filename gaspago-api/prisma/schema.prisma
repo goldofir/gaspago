@@ -72,6 +72,23 @@ enum PosPaymentStatus {
   CANCELLED
 }
 
+enum OnChainDirection {
+  TO_USER    // treasury -> user wallet (earned FGOL, batched)
+  FROM_USER  // user wallet -> treasury (redemption pull-back, via approve/transferFrom)
+}
+
+enum OnChainTransferStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum RedeemLock {
+  NONE       // fully usable (PIX + marketplace)
+  PIX_LOCKED // 30d+ without consumption — marketplace still usable, PIX withdrawal blocked
+  EXPIRED    // 60d+ without consumption — balance forfeited
+}
+
 // ─── USERS ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -96,12 +113,24 @@ model User {
   // Matrix
   matrixPosition MatrixPosition?
 
-  // FGOL internal ledger (off-chain — settled in batch)
+  // FGOL internal ledger — authoritative for what's redeemable (PIX / marketplace).
+  // Only ever credited by internal platform events (commission, cashback, internal
+  // transfer) — never synced from on-chain wallet state.
   fgolBalance Decimal @default(0) @db.Decimal(20, 8)
   fgolFrozen  Decimal @default(0) @db.Decimal(20, 8) // BLOCKED commissions
 
   // On-chain address (Web3Auth embedded wallet)
-  walletAddress String?
+  walletAddress    String?
+  walletApprovedAt DateTime? // set once the user signs the one-time approve() letting
+                              // the treasury pull redeemed FGOL back via transferFrom
+
+  // Earned FGOL not yet pushed on-chain — batched to avoid a tx per small commission.
+  // Flushed to a real treasury->wallet transfer once it crosses the configured threshold.
+  pendingOnChainAmount Decimal @default(0) @db.Decimal(20, 8)
+
+  // Redemption window — tracks activity independent of the affiliate network state
+  // machine above. Updated on every Order / marketplace PosPayment as payer.
+  lastConsumptionAt DateTime?
 
   // Asaas — only for actors that receive BRL (credenciador, establishment owner)
   asaasSubAccountId String? @unique
@@ -126,6 +155,7 @@ model User {
   orders               Order[]
   commissionsReceived  CommissionLedger[] @relation("Recipient")
   posPaymentsInitiated PosPayment[]
+  onChainTransfers     OnChainTransfer[]
 }
 
 // ─── MATRIX 5×5 (hidden from users — visible only in SuperAdmin) ──────────────
@@ -406,6 +436,58 @@ model BuybackBatch {
 
   executedAt DateTime
   createdAt  DateTime @default(now())
+}
+
+// ─── ON-CHAIN TRANSFERS (treasury <-> user wallet, processed async by a worker) ─
+// Never inline with a PIX/purchase request: the DB ledger (User.fgolBalance) settles
+// the payment instantly; these rows are queued and reconciled in the background.
+
+model OnChainTransfer {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  direction OnChainDirection
+  amount    Decimal @db.Decimal(20, 8)
+
+  // "commission_batch" (TO_USER, threshold flush) | "pix_withdrawal" | "marketplace_payment" (FROM_USER)
+  reason      String
+  referenceId String? // CommissionLedger.id, Order.id or PosPayment.id that triggered this
+
+  txHash String?
+  status OnChainTransferStatus @default(PENDING)
+  error  String?
+
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+
+  @@index([status])
+  @@index([userId])
+}
+
+// ─── TREASURY REBALANCING ─────────────────────────────────────────────────────
+// Sell-side (FGOL -> USDC when the Asaas BRL float runs low) is automated by the
+// system. Buy-side (USDC -> FGOL, restocking the treasury from BRL commission
+// revenue) is a manual admin action on an exchange — logged here for audit, not
+// executed by this platform. USDC -> BRL off-ramp is also manual (admin marks
+// brlConfirmed once the conversion lands and Asaas is topped up).
+
+model TreasuryConversion {
+  id String @id @default(cuid())
+
+  direction  String // "SELL_FGOL_FOR_USDC" (automated) | "BUY_FGOL_WITH_USDC" (manual, admin-logged)
+  fgolAmount Decimal @db.Decimal(20, 8)
+  usdcAmount Decimal @db.Decimal(20, 8)
+  txHash     String?
+
+  triggeredBy String // "system_auto" or the admin User.id who logged a manual buy
+
+  brlConfirmed Boolean   @default(false) // admin marks true after manually converting USDC->BRL and topping up Asaas
+  brlAmount    Decimal?  @db.Decimal(10, 2)
+  confirmedBy  String?
+  confirmedAt  DateTime?
+
+  createdAt DateTime @default(now())
 }
 
 // ─── ASAAS SUB-ACCOUNTS registry ─────────────────────────────────────────────

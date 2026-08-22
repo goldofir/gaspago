@@ -119,6 +119,8 @@ export const KNOWN_KEYS: Record<string, { label: string; group: string; sensitiv
   POLYGON_RPC_URL: { label: 'Polygon RPC URL', group: 'polygon', sensitive: false, hint: 'Ex.: https://polygon-rpc.com ou Alchemy/Infura' },
   FGOL_CONTRACT: { label: 'Endereço do contrato FGOL', group: 'polygon', sensitive: false, hint: '0xa1B7797F97eE6C928A6Ce0E403f345b68945C6D7' },
   PLATFORM_WALLET_KEY: { label: 'Chave privada da carteira da plataforma', group: 'polygon', sensitive: true, hint: 'Carteira que executa buybacks — NUNCA compartilhe' },
+  FGOL_ONCHAIN_BATCH_THRESHOLD_BRL: { label: 'Valor mínimo p/ enviar FGOL à blockchain (R$)', group: 'polygon', sensitive: false, hint: 'Comissões acumulam em pendingOnChainAmount até bater esse valor, aí vira 1 transferência real na carteira do usuário. Evita 1 tx a cada centavo de comissão.' },
+  FGOL_MIN_PIX_WITHDRAWAL_BRL: { label: 'Valor mínimo p/ saque via PIX (R$)', group: 'polygon', sensitive: false, hint: 'Abaixo desse valor em FGOL, o usuário não consegue solicitar saque em PIX — só usar no marketplace.' },
 
   // Web3Auth
   WEB3AUTH_CLIENT_ID:     { label: 'Web3Auth Client ID',     group: 'web3auth', sensitive: false, hint: 'Encontre em dashboard.web3auth.io → seu projeto → Client ID' },

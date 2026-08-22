@@ -6,6 +6,7 @@ import { prisma } from '../shared/prisma'
 import { createPixCharge, internalTransfer } from './asaas.client'
 import { config } from '../config'
 import { distributeCommissionsPos } from '../commissions/pos-commission.service'
+import { queueRedemptionPullback } from '../wallet/wallet-treasury.service'
 import { requireRole } from '../shared/auth.middleware'
 
 const secret = new TextEncoder().encode(config.pos.qrJwtSecret)
@@ -156,6 +157,13 @@ export async function posRoutes(app: FastifyInstance) {
 
     const settled = await prisma.posPayment.findUniqueOrThrow({ where: { id: posPaymentId } })
     await distributeCommissionsPos(settled)
+
+    // DB balance already settled the sale above (the establishment's PIX side is done)
+    // — pulling the equivalent FGOL back from the wallet on-chain is queued for the
+    // background worker and never blocks the in-person payment.
+    if (body.fgolToUse > 0 && customerId !== null) {
+      await queueRedemptionPullback(customerId, body.fgolToUse, 'pos_payment', settled.id)
+    }
 
     return reply.send({
       posPaymentId: settled.id,

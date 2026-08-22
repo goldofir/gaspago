@@ -132,10 +132,16 @@ export async function distributeCommissions(orderId: string): Promise<void> {
       await tx.user.update({
         where: { id: userId },
         data: active
-          ? { fgolBalance: { increment: amount } }
+          ? { fgolBalance: { increment: amount }, pendingOnChainAmount: { increment: amount } }
           : { fgolFrozen: { increment: amount } },
       })
     }
+
+    // Placing an order is a consumption event — resets the 30/60-day redemption window.
+    await tx.user.update({
+      where: { id: customer.id },
+      data: { lastConsumptionAt: new Date() },
+    })
   })
 
   console.log(`[commissions] Distributed ${margin} FGOL margin for orderId=${orderId} (${ledgerEntries.length} ledger entries)`)

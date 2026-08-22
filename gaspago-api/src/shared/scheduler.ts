@@ -3,6 +3,8 @@ import { FastifyInstance } from 'fastify'
 import { prisma } from './prisma'
 import { runDailyExpiryCheck } from '../commissions/expiry.cron'
 import { runMonthlyCommissionCron } from '../commissions/commission.cron'
+import { runConsumptionExpiryCheck } from '../commissions/consumption-expiry.cron'
+import { runOnChainBatchCron } from '../wallet/onchain-batch.cron'
 import { executeBuyback } from '../web3/buyback.service'
 
 // In-process cron scheduling. Registered once at bootstrap, after the HTTP
@@ -80,5 +82,30 @@ export function startSchedulers(app: FastifyInstance): void {
     }
   })
 
-  app.log.info('[scheduler] Cron jobs registered: expiry (02:00 daily), commissions (03:00 daily), buyback (04:00 Sunday)')
+  // Daily at 02:30 — forfeit fgolBalance for users 60+ days without a purchase
+  // (gas order or marketplace checkout). 30-59 days just blocks PIX withdrawal,
+  // enforced inline by the withdrawal endpoint, not by this cron.
+  cron.schedule('30 2 * * *', async () => {
+    app.log.info('[scheduler] Starting consumption-based expiry check')
+    try {
+      await runConsumptionExpiryCheck()
+      app.log.info('[scheduler] Consumption-based expiry check finished')
+    } catch (err) {
+      app.log.error({ err }, '[scheduler] Consumption-based expiry check failed')
+    }
+  })
+
+  // Every 15 minutes — flush any user whose pendingOnChainAmount crossed the
+  // configured threshold into a queued treasury transfer, then drain the
+  // on-chain transfer queue (both directions). Safe no-op until PLATFORM_WALLET_KEY
+  // is configured (see wallet-treasury.service.ts).
+  cron.schedule('*/15 * * * *', async () => {
+    try {
+      await runOnChainBatchCron()
+    } catch (err) {
+      app.log.error({ err }, '[scheduler] On-chain batch cron failed')
+    }
+  })
+
+  app.log.info('[scheduler] Cron jobs registered: expiry (02:00 daily), commissions (03:00 daily), consumption-expiry (02:30 daily), buyback (04:00 Sunday), onchain-batch (every 15min)')
 }
