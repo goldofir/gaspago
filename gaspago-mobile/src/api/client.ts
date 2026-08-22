@@ -156,7 +156,18 @@ export interface Order {
   createdAt: string;
 }
 
-export const createOrder = (data: CreateOrderPayload): Promise<Order> =>
+export interface CreateOrderResponse {
+  id: string;
+  status: string;
+  paymentStatus: 'PENDING' | 'PAID';
+  total: string;
+  // Present only when a real PIX charge was created (some amount was owed
+  // beyond FGOL) — payment isn't confirmed yet when these are returned.
+  pixQrCode?: string;
+  pixPayload?: string;
+}
+
+export const createOrder = (data: CreateOrderPayload): Promise<CreateOrderResponse> =>
   apiClient.post('/orders', data).then((r) => r.data);
 
 export const getOrders = (limit = 10): Promise<Order[]> =>

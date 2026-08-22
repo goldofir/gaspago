@@ -5,6 +5,8 @@ import { findDistributorsByPostalCode, findDistributorsByLocation } from './rout
 import { distributeCommissions } from '../commissions/commission.service'
 import { NotificationService } from '../notifications/notification.service'
 import { requireAuth } from '../shared/auth.middleware'
+import { createPixCharge, getPixQrCode, asaasErrorMessage } from '../payments/asaas.client'
+import { getOrCreateCustomerId } from '../payments/customer.service'
 
 const CreateOrderSchema = z.object({
   distributorId: z.string(),
@@ -54,6 +56,15 @@ export async function orderRoutes(app: FastifyInstance) {
 
     const marginOffered = subtotal * distributor.cashbackPercent
 
+    if (body.fgolToUse > 0) {
+      const user = await prisma.user.findUniqueOrThrow({ where: { id: customerId } })
+      if (Number(user.fgolBalance) < body.fgolToUse) {
+        return reply.status(400).send({ error: 'Saldo FGOL insuficiente.' })
+      }
+    }
+
+    const pixAmount = Math.max(0, subtotal - body.fgolToUse)
+
     const order = await prisma.order.create({
       data: {
         customerId,
@@ -65,7 +76,9 @@ export async function orderRoutes(app: FastifyInstance) {
         marginOffered,
         cashbackPercent: distributor.cashbackPercent,
         paymentMethod: body.paymentMethod,
+        paymentStatus: pixAmount === 0 ? 'PAID' : 'PENDING',
         fgolUsed: body.fgolToUse,
+        fgolUsedBrlValue: body.fgolToUse,
         channel: body.channel,
         items: {
           create: body.items.map(item => {
@@ -76,8 +89,45 @@ export async function orderRoutes(app: FastifyInstance) {
       },
     })
 
-    // Commissions are created after delivery confirmation
-    return reply.status(201).send(order)
+    if (pixAmount === 0) {
+      // Fully covered by FGOL — nothing to actually collect.
+      if (body.fgolToUse > 0) {
+        await prisma.user.update({ where: { id: customerId }, data: { fgolBalance: { decrement: body.fgolToUse } } })
+      }
+      // Commissions are created after delivery confirmation (POST /:id/delivered), unchanged.
+      return reply.status(201).send(order)
+    }
+
+    // Real money is owed — create an actual Asaas PIX charge. paymentStatus stays
+    // PENDING until asaas.webhook.ts confirms it. FGOL is only debited once the
+    // charge exists, so a failed charge never leaves the balance drained for nothing.
+    try {
+      const asaasCustomerId = await getOrCreateCustomerId(customerId)
+      const charge = await createPixCharge({
+        customer: asaasCustomerId,
+        value: pixAmount,
+        description: `Gás Pago — ${distributor.name}`,
+        externalReference: order.id,
+      })
+      const pixQr = charge.pixQrCode ?? (await getPixQrCode(charge.id).catch(() => undefined))
+
+      const updatedOrder = await prisma.order.update({ where: { id: order.id }, data: { asaasChargeId: charge.id } })
+      if (body.fgolToUse > 0) {
+        await prisma.user.update({ where: { id: customerId }, data: { fgolBalance: { decrement: body.fgolToUse } } })
+      }
+
+      return reply.status(201).send({
+        ...updatedOrder,
+        pixQrCode: (pixQr as any)?.encodedImage,
+        pixPayload: (pixQr as any)?.payload,
+      })
+    } catch (err: any) {
+      // No charge and nothing debited yet — safe to delete the order outright
+      // rather than leave an unpayable PENDING order behind.
+      await prisma.orderItem.deleteMany({ where: { orderId: order.id } })
+      await prisma.order.delete({ where: { id: order.id } })
+      return reply.status(400).send({ error: asaasErrorMessage(err) ?? 'Não foi possível gerar a cobrança PIX. Tente novamente.' })
+    }
   })
 
   // POST /orders/:id/delivered — mark delivered, trigger commissions

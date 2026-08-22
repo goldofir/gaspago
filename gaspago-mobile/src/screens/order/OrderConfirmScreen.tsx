@@ -7,11 +7,12 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { createOrder } from '@/api/client';
+import { createOrder, CreateOrderResponse } from '@/api/client';
 import type { MainStackParamList } from '@/navigation';
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
@@ -58,6 +59,7 @@ export function OrderConfirmScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState(false);
+  const [pixResult, setPixResult] = useState<CreateOrderResponse | null>(null);
 
   const subtotal = price * quantity;
   const cashbackFgol = Math.round((subtotal * cashbackPct) / 100);
@@ -81,17 +83,23 @@ export function OrderConfirmScreen() {
     setLoading(true);
     setError(null);
     try {
-      await createOrder({
+      const response = await createOrder({
         distributorId,
         items: [{ productId, quantity }],
         deliveryAddress: trimmedAddress,
         deliveryPostalCode: trimmedPostalCode,
         paymentMethod,
       });
-      setSuccessBanner(true);
-      setTimeout(() => {
-        navigation.navigate('MainTabs');
-      }, 1200);
+      if (response.pixQrCode || response.pixPayload) {
+        // Real money is owed and a PIX charge was created — the order isn't
+        // confirmed yet, show the code instead of claiming success.
+        setPixResult(response);
+      } else {
+        setSuccessBanner(true);
+        setTimeout(() => {
+          navigation.navigate('MainTabs');
+        }, 1200);
+      }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setError(
@@ -276,6 +284,41 @@ export function OrderConfirmScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* ── PIX payment modal ── */}
+      <Modal
+        visible={!!pixResult}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View style={styles.pixModalOverlay}>
+          <View style={styles.pixModalCard}>
+            <Text style={styles.pixModalEmoji}>💳</Text>
+            <Text style={styles.pixModalTitle}>Pague com PIX para confirmar</Text>
+            <Text style={styles.pixModalBody}>
+              Copie o código abaixo no app do seu banco. O pedido é confirmado automaticamente assim que o pagamento cair.
+            </Text>
+            {!!pixResult?.pixPayload && (
+              <View style={styles.pixCodeBox}>
+                <Text style={styles.pixCodeText} numberOfLines={4} selectable>
+                  {pixResult.pixPayload}
+                </Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.ctaBtn}
+              onPress={() => {
+                setPixResult(null);
+                navigation.navigate('MainTabs');
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.ctaBtnText}>Já copiei, voltar ao início</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -558,5 +601,52 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+
+  // PIX payment modal
+  pixModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  pixModalCard: {
+    backgroundColor: CARD,
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#1E3050',
+  },
+  pixModalEmoji: { fontSize: 48, marginBottom: 12 },
+  pixModalTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  pixModalBody: {
+    fontSize: 13,
+    color: MUTED,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 18,
+  },
+  pixCodeBox: {
+    backgroundColor: SURFACE,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#1E3050',
+  },
+  pixCodeText: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
   },
 });
