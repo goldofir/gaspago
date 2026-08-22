@@ -245,7 +245,7 @@ export function EstablishmentDetailScreen() {
           </View>
           <View style={styles.cashbackBadge}>
             <Text style={styles.cashbackText}>
-              +{establishment.cashbackPercent}% FGOL
+              +{Math.round(establishment.cashbackPercent * 100)}% FGOL
             </Text>
           </View>
         </View>

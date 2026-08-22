@@ -66,7 +66,7 @@ function EstablishmentCard({
       </View>
       <View style={styles.cashbackBadge}>
         <Text style={styles.cashbackText}>
-          +{establishment.cashbackPercent}%
+          +{Math.round(establishment.cashbackPercent * 100)}%
         </Text>
       </View>
     </TouchableOpacity>
