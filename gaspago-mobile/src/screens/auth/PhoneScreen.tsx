@@ -19,6 +19,8 @@ import * as Google from 'expo-auth-session/providers/google';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Phone'>;
 
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'http://192.168.0.100:3031';
+
 WebBrowser.maybeCompleteAuthSession();
 
 function formatBRPhone(raw: string): string {
@@ -173,8 +175,13 @@ export function PhoneScreen({ navigation }: Props) {
 
           <Text style={styles.legalNote}>
             Ao continuar você concorda com nossos{' '}
-            <Text style={styles.link}>Termos de Uso</Text> e{' '}
-            <Text style={styles.link}>Política de Privacidade</Text>.
+            <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/termos`)}>
+              Termos de Uso
+            </Text>{' '}
+            e{' '}
+            <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/privacidade`)}>
+              Política de Privacidade
+            </Text>.
           </Text>
         </View>
       </KeyboardAvoidingView>

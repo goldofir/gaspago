@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Flame, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import GoogleSignInButton from './GoogleSignInButton'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
@@ -87,10 +87,10 @@ export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
         .plf-brand { display: flex; flex-direction: column; align-items: center; gap: 12px; }
         .plf-icon {
           width: 56px; height: 56px; border-radius: 14px;
-          background: linear-gradient(135deg, #FF6524 0%, #F2B825 100%);
           display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 4px 20px rgba(255,101,36,.35);
+          filter: drop-shadow(0 4px 20px rgba(255,101,36,.35));
         }
+        .plf-icon img { width: 100%; height: 100%; border-radius: 14px; }
         .plf-wordmark { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 22px; color: #fff; letter-spacing: -.01em; }
         .plf-wordmark span { color: #FF6524; }
         .plf-subtitle { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin-top: -6px; }
@@ -138,7 +138,7 @@ export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
         <div className="plf-wrap">
           <div className="plf-brand">
             <div className="plf-icon">
-              <Flame size={26} color="#fff" strokeWidth={2.5} />
+              <img src="/icon-192.png" alt="Gás Pago" />
             </div>
             <div style={{ textAlign: 'center' }}>
               <div className="plf-wordmark">GÁS<span>PAGO</span></div>

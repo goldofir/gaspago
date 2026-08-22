@@ -3,7 +3,15 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: { template: '%s · Gás Pago', default: 'Gás Pago — Seu gás chega em minutos. E ele paga você de volta.' },
   description: 'Peça o botijão pelo app ou WhatsApp, receba da distribuidora mais próxima e ganhe cashback em FGOL a cada pedido.',
-  icons: { icon: '/favicon.svg' },
+  icons: {
+    icon: [
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
   viewport: { width: 'device-width', initialScale: 1 },
 }
 

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { QrCode, Clock, Settings, Flame, Menu, X, ChevronRight, LogOut } from 'lucide-react'
+import { QrCode, Clock, Settings, Menu, X, ChevronRight, LogOut } from 'lucide-react'
 
 const nav = [
   { href: '/pos',          label: 'Gerar Cobrança',  Icon: QrCode },
@@ -68,9 +68,7 @@ export default function PosLayout({ children }: { children: ReactNode }) {
 
       <div className="pos-topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg, #FF6524 0%, #F2B825 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Flame size={13} color="#fff" strokeWidth={2.5} />
-          </div>
+          <img src="/icon-192.png" alt="" width={28} height={28} style={{ borderRadius: 7, flexShrink: 0 }} />
           <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 14, color: '#fff' }}>GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span></span>
         </div>
         <button onClick={() => setOpen(o => !o)} style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, color: '#fff', cursor: 'pointer', padding: '6px 8px', display: 'flex', alignItems: 'center' }}>
@@ -81,9 +79,7 @@ export default function PosLayout({ children }: { children: ReactNode }) {
       <aside className={`pos-sidebar${open ? ' open' : ''}`}>
         <div style={{ padding: '22px 20px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #FF6524 0%, #F2B825 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Flame size={16} color="#fff" strokeWidth={2.5} />
-            </div>
+            <img src="/icon-192.png" alt="" width={32} height={32} style={{ borderRadius: 8, flexShrink: 0 }} />
             <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 15, color: '#fff' }}>
               GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span>
             </div>

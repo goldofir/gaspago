@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, KeyRound, Mail, HardDrive,
-  Network, TrendingUp, ShoppingBag, ChevronRight, Flame, Menu, X, Truck, CreditCard, LogOut,
+  Network, TrendingUp, ShoppingBag, ChevronRight, Menu, X, Truck, CreditCard, LogOut,
 } from 'lucide-react'
 import { adminLogout } from '../_components/adminFetch'
 
@@ -124,13 +124,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Mobile top bar */}
       <div className="admin-topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: 'linear-gradient(135deg, #FF6524 0%, #F2B825 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Flame size={13} color="#fff" strokeWidth={2.5} />
-          </div>
+          <img src="/icon-192.png" alt="" width={28} height={28} style={{ borderRadius: 7, flexShrink: 0 }} />
           <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 14, color: '#fff', letterSpacing: '-.01em' }}>
             GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span>
           </span>
@@ -150,13 +144,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {/* Brand */}
         <div style={{ padding: '22px 20px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: 'linear-gradient(135deg, #FF6524 0%, #F2B825 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <Flame size={16} color="#fff" strokeWidth={2.5} />
-            </div>
+            <img src="/icon-192.png" alt="" width={32} height={32} style={{ borderRadius: 8, flexShrink: 0 }} />
             <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 15, color: '#fff', letterSpacing: '-.01em' }}>
               GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span>
             </div>

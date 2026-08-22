@@ -11,6 +11,7 @@ import {
   Pressable,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { getMe, apiClient } from '@/api/client';
@@ -18,6 +19,7 @@ import { useAuthStore } from '@/store/auth.store';
 
 const FLAME = '#FF6524';
 const NAVY = '#0A1628';
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'http://192.168.0.100:3031';
 const GOLD = '#F2B825';
 const GROUND = '#F4F6FA';
 
@@ -329,13 +331,13 @@ export function ProfileScreen() {
 
         {/* ── Actions ── */}
         <View style={styles.actionsCard}>
-          <TouchableOpacity style={styles.actionRow}>
+          <TouchableOpacity style={styles.actionRow} onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/privacidade`)}>
             <Text style={styles.actionIcon}>🔒</Text>
             <Text style={styles.actionLabel}>Privacidade e segurança</Text>
             <Text style={styles.actionChevron}>›</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.actionRow}>
+          <TouchableOpacity style={styles.actionRow} onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/termos`)}>
             <Text style={styles.actionIcon}>📄</Text>
             <Text style={styles.actionLabel}>Termos de uso</Text>
             <Text style={styles.actionChevron}>›</Text>

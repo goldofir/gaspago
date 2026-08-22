@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Flame, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import GoogleSignInButton from '../_components/GoogleSignInButton'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
@@ -109,12 +109,12 @@ export default function LoginPage() {
           width: 56px;
           height: 56px;
           border-radius: 14px;
-          background: linear-gradient(135deg, #FF6524 0%, #F2B825 100%);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 20px rgba(255,101,36,.35);
+          filter: drop-shadow(0 4px 20px rgba(255,101,36,.35));
         }
+        .brand-icon img { width: 100%; height: 100%; border-radius: 14px; }
 
         .brand-wordmark {
           font-family: 'Sora', sans-serif;
@@ -283,7 +283,7 @@ export default function LoginPage() {
         {/* Brand block */}
         <div className="brand-block">
           <div className="brand-icon">
-            <Flame size={26} color="#fff" strokeWidth={2.5} />
+            <img src="/icon-192.png" alt="Gás Pago" />
           </div>
           <div style={{ textAlign: 'center' }}>
             <div className="brand-wordmark">

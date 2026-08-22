@@ -320,11 +320,7 @@ export default function Home() {
       {/* ————— Nav ————— */}
       <header className="nav">
         <a className="nav-brand" href="/">
-          <span className="nav-flame-ico" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2c1 4-4 6-4 11a6 6 0 0 0 12 0c0-2-1-4-2.5-5.5C17 10 15 11 15 9c0-2.5-1.5-5.5-3-7z" fill="#0A1628"/>
-            </svg>
-          </span>
+          <img src="/icon-192.png" alt="" width={30} height={30} style={{ borderRadius: 9, flexShrink: 0 }} />
           GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span>
         </a>
         <nav className={`nav-links${menuOpen ? ' open' : ''}`}>
@@ -488,11 +484,7 @@ export default function Home() {
       {/* ————— Footer ————— */}
       <footer className="footer">
         <div className="footer-brand">
-          <span className="nav-flame-ico" aria-hidden="true" style={{ width: 24, height: 24, borderRadius: 7 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2c1 4-4 6-4 11a6 6 0 0 0 12 0c0-2-1-4-2.5-5.5C17 10 15 11 15 9c0-2.5-1.5-5.5-3-7z" fill="#0A1628"/>
-            </svg>
-          </span>
+          <img src="/icon-192.png" alt="" width={24} height={24} style={{ borderRadius: 7, flexShrink: 0 }} />
           GÁS<span style={{ color: 'var(--flame)' }}>PAGO</span>
         </div>
         <div className="footer-links">
