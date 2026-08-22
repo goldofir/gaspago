@@ -12,7 +12,11 @@ export async function emailRoutes(app: FastifyInstance) {
     },
   }, async (req, reply) => {
     const { to } = req.body as { to: string }
-    await testSmtp(to)
-    return reply.send({ ok: true, message: `E-mail de teste enviado para ${to}` })
+    try {
+      await testSmtp(to)
+      return reply.send({ ok: true, message: `E-mail de teste enviado para ${to}` })
+    } catch (err: any) {
+      return reply.status(400).send({ ok: false, error: err?.message ?? 'Falha ao enviar e-mail de teste. Verifique as credenciais SMTP em Credenciais.' })
+    }
   })
 }

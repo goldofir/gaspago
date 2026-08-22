@@ -69,6 +69,10 @@ export async function establishmentsAdminRoutes(app: FastifyInstance) {
       }),
     ]);
 
-    return reply.send({ total, active, byCategory });
+    return reply.send({
+      total,
+      active,
+      byCategory: byCategory.map(c => ({ category: c.category, count: c._count })),
+    });
   });
 }

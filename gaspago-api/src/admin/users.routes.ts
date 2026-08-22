@@ -49,7 +49,30 @@ export async function usersRoutes(app: FastifyInstance) {
           200: {
             type: 'object',
             properties: {
-              users: { type: 'array', items: { type: 'object' } },
+              users: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    name: { type: ['string', 'null'] },
+                    phone: { type: 'string' },
+                    email: { type: ['string', 'null'] },
+                    affiliateStatus: { type: 'string' },
+                    fgolBalance: { type: 'string' },
+                    fgolFrozen: { type: 'string' },
+                    lastPurchaseAt: { type: ['string', 'null'] },
+                    createdAt: { type: 'string' },
+                    _count: {
+                      type: 'object',
+                      properties: {
+                        orders: { type: 'integer' },
+                        commissionsReceived: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
               total: { type: 'integer' },
             },
           },

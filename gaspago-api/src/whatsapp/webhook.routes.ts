@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { config } from '../config'
+import { SystemConfigService } from '../shared/system-config.service'
 import { handleIncomingMessage } from './handler'
 
 export async function waWebhookRoutes(app: FastifyInstance) {
@@ -7,8 +7,17 @@ export async function waWebhookRoutes(app: FastifyInstance) {
   app.post('/wa', {
     config: { rawBody: true },
   }, async (req, reply) => {
-    const sig = req.headers['x-conexbot-signature'] as string
-    if (sig !== config.conexbot.webhookSecret) {
+    // config.conexbot.webhookSecret reads process.env directly, which is never
+    // populated (the real secret only lives in SystemConfig/Postgres, same as
+    // every other Conexbot credential) — that made this comparison always
+    // undefined === undefined on an unsigned request, accepting anything.
+    const configuredSecret = SystemConfigService.get('CONEXBOT_WEBHOOK_SECRET')
+    const sig = req.headers['x-conexbot-signature'] as string | undefined
+    if (!configuredSecret) {
+      app.log.warn('whatsapp.webhook: CONEXBOT_WEBHOOK_SECRET not configured — rejecting all requests')
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+    if (sig !== configuredSecret) {
       return reply.status(401).send({ error: 'Unauthorized' })
     }
     const event = req.body as WAEvent
