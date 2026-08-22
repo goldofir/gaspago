@@ -338,8 +338,8 @@ export default function Home() {
         <nav className={`nav-links${menuOpen ? ' open' : ''}`}>
           <a className="nav-link" href="#como-funciona" onClick={() => setMenuOpen(false)}>Como funciona</a>
           <a className="nav-link" href="#fgol" onClick={() => setMenuOpen(false)}>FGOL</a>
-          <a className="nav-link" href="#marketplace" onClick={() => setMenuOpen(false)}>Marketplace</a>
           <a className="nav-link" href="#distribuidoras" onClick={() => setMenuOpen(false)}>Distribuidoras</a>
+          <a className="nav-link" href="#marketplace" onClick={() => setMenuOpen(false)}>Marketplace</a>
           <a className="nav-cta" href="#baixar" onClick={() => setMenuOpen(false)}>Baixar o app</a>
         </nav>
         <button className="nav-burger" aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'} onClick={() => setMenuOpen(o => !o)}>
@@ -353,7 +353,7 @@ export default function Home() {
       <section className="hero">
         <FlameCanvas />
         <div className="hero-inner">
-          <h1>Seu gás chega em minutos.<br /><span className="pay">E ele paga você de volta.</span></h1>
+          <h1><span className="pay">Peça, pague e ganhe.</span><br />Seu gás chega em minutos.</h1>
           <p className="hero-sub">
             Peça o botijão pelo app ou WhatsApp, pague como quiser — PIX, cartão ou FGOL —
             e ganhe cashback a cada entrega. Peça, pague e ganhe: simples assim.
@@ -435,6 +435,47 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ————— Distribuidoras ————— */}
+      <section className="sec dist" id="distribuidoras">
+        <div className="sec-inner">
+          <div className="dist-flex">
+            <div data-reveal>
+              <h2>Para distribuidoras:<br />venda mais, sem call center.</h2>
+              <div className="dist-list-b">
+                <div className="dist-item">
+                  <span className="dist-item-dot" aria-hidden="true" />
+                  <div>
+                    <h3>Pedidos direto no seu painel</h3>
+                    <p>App e WhatsApp viram canais de venda. Você recebe, aceita e despacha — tudo num lugar só.</p>
+                  </div>
+                </div>
+                <div className="dist-item">
+                  <span className="dist-item-dot" aria-hidden="true" />
+                  <div>
+                    <h3>Repasse automático via PIX</h3>
+                    <p>Pagamento cai com split automático. Sem conciliação manual, sem boleto atrasado.</p>
+                  </div>
+                </div>
+                <div className="dist-item">
+                  <span className="dist-item-dot" aria-hidden="true" />
+                  <div>
+                    <h3>Clientes que voltam</h3>
+                    <p>O cashback em FGOL fideliza pra você — quem ganha de volta pede de novo no mesmo lugar.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div data-reveal>
+              <div className="dist-cta-box">
+                <h3>Cadastre sua distribuidora e comece a receber pedidos.</h3>
+                <p>Sem taxa de adesão. Você define preço, área de entrega e percentual de cashback — a plataforma cuida do resto.</p>
+                <a className="btn-primary" href="https://wa.me/" target="_blank" rel="noopener noreferrer">Quero ser parceira</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ————— Marketplace ————— */}
       <section className="sec" id="marketplace">
         <div className="sec-inner">
@@ -504,47 +545,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ————— Distribuidoras ————— */}
-      <section className="sec dist" id="distribuidoras">
-        <div className="sec-inner">
-          <div className="dist-flex">
-            <div data-reveal>
-              <h2>Para distribuidoras:<br />venda mais, sem call center.</h2>
-              <div className="dist-list-b">
-                <div className="dist-item">
-                  <span className="dist-item-dot" aria-hidden="true" />
-                  <div>
-                    <h3>Pedidos direto no seu painel</h3>
-                    <p>App e WhatsApp viram canais de venda. Você recebe, aceita e despacha — tudo num lugar só.</p>
-                  </div>
-                </div>
-                <div className="dist-item">
-                  <span className="dist-item-dot" aria-hidden="true" />
-                  <div>
-                    <h3>Repasse automático via PIX</h3>
-                    <p>Pagamento cai com split automático. Sem conciliação manual, sem boleto atrasado.</p>
-                  </div>
-                </div>
-                <div className="dist-item">
-                  <span className="dist-item-dot" aria-hidden="true" />
-                  <div>
-                    <h3>Clientes que voltam</h3>
-                    <p>O cashback em FGOL fideliza pra você — quem ganha de volta pede de novo no mesmo lugar.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div data-reveal>
-              <div className="dist-cta-box">
-                <h3>Cadastre sua distribuidora e comece a receber pedidos.</h3>
-                <p>Sem taxa de adesão. Você define preço, área de entrega e percentual de cashback — a plataforma cuida do resto.</p>
-                <a className="btn-primary" href="https://wa.me/" target="_blank" rel="noopener noreferrer">Quero ser parceira</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ————— Final CTA ————— */}
       <section className="sec final" id="baixar">
         <div className="sec-inner" data-reveal>
@@ -570,8 +570,8 @@ export default function Home() {
         <div className="footer-links">
           <a href="#como-funciona">Como funciona</a>
           <a href="#fgol">FGOL</a>
-          <a href="#marketplace">Marketplace</a>
           <a href="#distribuidoras">Distribuidoras</a>
+          <a href="#marketplace">Marketplace</a>
           <a href="/termos">Termos</a>
           <a href="/privacidade">Privacidade</a>
           <a href="/admin">Painel</a>
