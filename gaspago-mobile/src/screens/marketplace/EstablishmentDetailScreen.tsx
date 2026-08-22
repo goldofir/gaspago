@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -99,6 +100,7 @@ export function EstablishmentDetailScreen() {
   const { establishmentId } = route.params;
 
   const [cart, setCart] = useState<Record<string, number>>({});
+  const [cpf, setCpf] = useState('');
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<CheckoutResponse | null>(
@@ -146,6 +148,11 @@ export function EstablishmentDetailScreen() {
 
   const handleCheckout = async () => {
     if (!establishment || cartCount === 0) return;
+    const trimmedCpf = cpf.replace(/\D/g, '');
+    if (trimmedCpf.length !== 11) {
+      setCheckoutError('Informe um CPF válido (11 dígitos) para pagar com PIX.');
+      return;
+    }
     setCheckingOut(true);
     setCheckoutError(null);
     try {
@@ -156,6 +163,7 @@ export function EstablishmentDetailScreen() {
           quantity: line.quantity,
         })),
         fgolToUse: 0,
+        cpf: trimmedCpf,
       });
       setSuccessData(response);
       setCart({});
@@ -278,6 +286,21 @@ export function EstablishmentDetailScreen() {
           ))
         )}
       </ScrollView>
+
+      {/* ── CPF (required by Asaas to issue a PIX charge) ── */}
+      {cartCount > 0 && (
+        <View style={styles.cpfBar}>
+          <TextInput
+            style={styles.cpfInput}
+            placeholder="Seu CPF (obrigatório para pagar com PIX)"
+            placeholderTextColor="#94A3B8"
+            keyboardType="number-pad"
+            maxLength={11}
+            value={cpf}
+            onChangeText={(t) => setCpf(t.replace(/\D/g, '').slice(0, 11))}
+          />
+        </View>
+      )}
 
       {/* ── Sticky cart bar ── */}
       <View style={styles.ctaContainer}>
@@ -513,6 +536,21 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  cpfBar: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    backgroundColor: '#fff',
+  },
+  cpfInput: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: NAVY,
+    backgroundColor: GROUND,
   },
   ctaContainer: {
     flexDirection: 'row',

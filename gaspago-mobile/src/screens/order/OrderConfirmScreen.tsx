@@ -56,6 +56,7 @@ export function OrderConfirmScreen() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PIX');
   const [address, setAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
+  const [cpf, setCpf] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState(false);
@@ -71,12 +72,19 @@ export function OrderConfirmScreen() {
   const handlePlaceOrder = async () => {
     const trimmedAddress = address.trim();
     const trimmedPostalCode = postalCode.replace(/\D/g, '');
+    const trimmedCpf = cpf.replace(/\D/g, '');
     if (!trimmedAddress) {
       setError('Informe o endereço de entrega.');
       return;
     }
     if (trimmedPostalCode.length !== 8) {
       setError('Informe um CEP válido (8 dígitos).');
+      return;
+    }
+    // CPF is only required when there's a real amount to charge via PIX/cartão —
+    // Asaas won't create a PIX charge without it. Not needed for a 100% FGOL order.
+    if (paymentMethod !== 'FGOL_BALANCE' && trimmedCpf.length !== 11) {
+      setError('Informe um CPF válido (11 dígitos) para pagar com PIX.');
       return;
     }
 
@@ -89,6 +97,7 @@ export function OrderConfirmScreen() {
         deliveryAddress: trimmedAddress,
         deliveryPostalCode: trimmedPostalCode,
         paymentMethod,
+        cpf: trimmedCpf.length === 11 ? trimmedCpf : undefined,
       });
       if (response.pixQrCode || response.pixPayload) {
         // Real money is owed and a PIX charge was created — the order isn't
@@ -212,6 +221,20 @@ export function OrderConfirmScreen() {
             }
             onChangeText={(t) => setPostalCode(t.replace(/\D/g, '').slice(0, 8))}
           />
+          {paymentMethod !== 'FGOL_BALANCE' && (
+            <>
+              <View style={styles.addressDivider} />
+              <TextInput
+                style={styles.addressInput}
+                placeholder="CPF (obrigatório para pagar com PIX)"
+                placeholderTextColor={MUTED}
+                keyboardType="number-pad"
+                maxLength={11}
+                value={cpf}
+                onChangeText={(t) => setCpf(t.replace(/\D/g, '').slice(0, 11))}
+              />
+            </>
+          )}
         </View>
 
         {/* ── Payment method ── */}

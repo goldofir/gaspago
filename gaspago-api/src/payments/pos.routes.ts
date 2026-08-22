@@ -19,6 +19,7 @@ const GenerateQrSchema = z.object({
 const ScanQrSchema = z.object({
   qrToken: z.string(),
   fgolToUse: z.number().min(0).default(0),
+  cpf: z.string().regex(/^\d{11}$/).optional(),
 })
 
 async function getMeEstablishment(establishmentId?: string) {
@@ -171,7 +172,7 @@ export async function posRoutes(app: FastifyInstance) {
     // version marked this PAID immediately without ever billing the consumer.
     let charge: Awaited<ReturnType<typeof createPixCharge>>
     try {
-      const asaasCustomerId = await getOrCreateCustomerId(customerId)
+      const asaasCustomerId = await getOrCreateCustomerId(customerId, body.cpf)
       charge = await createPixCharge({
         customer: asaasCustomerId,
         value: pixAmount,

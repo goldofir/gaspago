@@ -65,6 +65,7 @@ export async function marketplaceRoutes(app: FastifyInstance) {
     establishmentId: z.string(),
     items: z.array(z.object({ itemId: z.string(), quantity: z.number().int().min(1) })).min(1),
     fgolToUse: z.number().min(0).default(0),
+    cpf: z.string().regex(/^\d{11}$/).optional(),
   })
 
   app.post('/checkout', { preHandler: requireAuth }, async (req, reply) => {
@@ -134,7 +135,7 @@ export async function marketplaceRoutes(app: FastifyInstance) {
     // leaves the consumer's balance drained with nothing to show for it.
     let charge: Awaited<ReturnType<typeof createPixCharge>>
     try {
-      const asaasCustomerId = await getOrCreateCustomerId(customerId)
+      const asaasCustomerId = await getOrCreateCustomerId(customerId, body.cpf)
       charge = await createPixCharge({
         customer: asaasCustomerId,
         value: pixAmount,

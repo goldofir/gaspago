@@ -30,6 +30,7 @@ export function PosScannerScreen() {
   const [scanned, setScanned] = useState(false);
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [fgolToUse, setFgolToUse] = useState('0');
+  const [cpf, setCpf] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
 
   // Reset scanned flag each time we return to scanning step
@@ -48,7 +49,8 @@ export function PosScannerScreen() {
     if (!qrToken) return;
     setStep('processing');
     try {
-      const res = await scanPosQr(qrToken, parseFloat(fgolToUse) || 0);
+      const trimmedCpf = cpf.replace(/\D/g, '');
+      const res = await scanPosQr(qrToken, parseFloat(fgolToUse) || 0, trimmedCpf.length === 11 ? trimmedCpf : undefined);
       setResult(res);
       setStep('success');
     } catch (err: any) {
@@ -125,6 +127,16 @@ export function PosScannerScreen() {
               keyboardType="decimal-pad"
               placeholder="0"
               placeholderTextColor="#94A3B8"
+            />
+            <Text style={styles.cardLabel}>CPF (necessário se sobrar valor pra pagar via PIX)</Text>
+            <TextInput
+              style={styles.input}
+              value={cpf}
+              onChangeText={(t) => setCpf(t.replace(/\D/g, '').slice(0, 11))}
+              keyboardType="number-pad"
+              placeholder="Somente números"
+              placeholderTextColor="#94A3B8"
+              maxLength={11}
             />
           </View>
           <TouchableOpacity style={styles.confirmBtn} onPress={confirmPayment}>

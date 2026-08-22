@@ -145,6 +145,7 @@ export interface CreateOrderPayload {
   deliveryPostalCode: string;
   paymentMethod: 'PIX' | 'CARD' | 'FGOL_BALANCE' | 'MIXED';
   fgolToUse?: number;
+  cpf?: string;
 }
 
 export interface Order {
@@ -215,8 +216,9 @@ export interface PosPaymentResponse {
 export const scanPosQr = (
   qrToken: string,
   fgolToUse: number,
+  cpf?: string,
 ): Promise<PosPaymentResponse> =>
-  apiClient.post('/pos/scan', { qrToken, fgolToUse }).then((r) => r.data);
+  apiClient.post('/pos/scan', { qrToken, fgolToUse, cpf }).then((r) => r.data);
 
 // ─── Matrix Network ───────────────────────────────────────────────────────────
 
@@ -290,6 +292,7 @@ export interface CheckoutPayload {
   establishmentId: string;
   items: { itemId: string; quantity: number }[];
   fgolToUse?: number;
+  cpf?: string;
 }
 
 export interface CheckoutResponse {

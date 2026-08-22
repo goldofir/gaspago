@@ -16,6 +16,7 @@ const CreateOrderSchema = z.object({
   paymentMethod: z.enum(['PIX', 'CARD', 'FGOL_BALANCE', 'MIXED']),
   fgolToUse: z.number().default(0),
   channel: z.string().default('app'),
+  cpf: z.string().regex(/^\d{11}$/).optional(),
 })
 
 export async function orderRoutes(app: FastifyInstance) {
@@ -102,7 +103,7 @@ export async function orderRoutes(app: FastifyInstance) {
     // PENDING until asaas.webhook.ts confirms it. FGOL is only debited once the
     // charge exists, so a failed charge never leaves the balance drained for nothing.
     try {
-      const asaasCustomerId = await getOrCreateCustomerId(customerId)
+      const asaasCustomerId = await getOrCreateCustomerId(customerId, body.cpf)
       const charge = await createPixCharge({
         customer: asaasCustomerId,
         value: pixAmount,
