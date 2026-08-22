@@ -21,19 +21,19 @@ const GOLD = '#F2B825';
 const GROUND = '#F4F6FA';
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: '#F59E0B',
-  confirmed: '#3B82F6',
-  delivering: '#8B5CF6',
-  delivered: '#10B981',
-  cancelled: '#EF4444',
+  PENDING: '#F59E0B',
+  CONFIRMED: '#3B82F6',
+  IN_DELIVERY: '#8B5CF6',
+  DELIVERED: '#10B981',
+  CANCELLED: '#EF4444',
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendente',
-  confirmed: 'Confirmado',
-  delivering: 'Entregando',
-  delivered: 'Entregue',
-  cancelled: 'Cancelado',
+  PENDING: 'Pendente',
+  CONFIRMED: 'Confirmado',
+  IN_DELIVERY: 'Entregando',
+  DELIVERED: 'Entregue',
+  CANCELLED: 'Cancelado',
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -62,13 +62,13 @@ function OrderCard({ order }: { order: Order }) {
   return (
     <View style={styles.orderCard}>
       <View style={styles.orderRow}>
-        <Text style={styles.orderDistributor}>{order.distributor_name}</Text>
+        <Text style={styles.orderDistributor}>{order.distributor.name}</Text>
         <StatusBadge status={order.status} />
       </View>
       <View style={styles.orderRow}>
-        <Text style={styles.orderDate}>{formatDate(order.created_at)}</Text>
+        <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
         <Text style={styles.orderTotal}>
-          R$ {order.total_brl.toFixed(2).replace('.', ',')}
+          R$ {Number(order.total).toFixed(2).replace('.', ',')}
         </Text>
       </View>
     </View>
@@ -171,7 +171,11 @@ export function HomeScreen() {
         </View>
 
         {/* ── Quick action ── */}
-        <TouchableOpacity style={styles.orderBtn} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.orderBtn}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('Pedidos')}
+        >
           <Text style={styles.orderBtnEmoji}>🔥</Text>
           <View>
             <Text style={styles.orderBtnTitle}>Pedir Gás</Text>
@@ -206,7 +210,7 @@ export function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Pedidos recentes</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Pedidos')}>
               <Text style={styles.seeAll}>Ver todos</Text>
             </TouchableOpacity>
           </View>

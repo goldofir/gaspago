@@ -102,43 +102,58 @@ export const getPlans = (): Promise<Plan[]> =>
   apiClient.get('/subscriptions/plans').then((r) => r.data);
 
 // ─── Distributors ─────────────────────────────────────────────────────────────
+// GET /orders/distributors returns the raw Distributor rows (shared with the
+// WhatsApp bot's own search) — normalized here into what the app actually shows.
+
+export interface DistributorProduct {
+  id: string;
+  name: string;
+  price: number;
+}
 
 export interface Distributor {
   id: string;
   name: string;
   rating: number;
-  price_p13: number;
-  cashback_pct: number;
-  eta_minutes: number;
-  distance_km: number;
+  cashbackPercent: number; // 0-1 fraction, e.g. 0.2 = 20%
+  distanceKm?: number; // only present when searched by lat/lng, not by CEP
+  products: DistributorProduct[];
 }
 
 export const getDistributors = (cep: string): Promise<Distributor[]> =>
-  apiClient
-    .get('/orders/distributors', { params: { cep } })
-    .then((r) => r.data);
+  apiClient.get('/orders/distributors', { params: { cep } }).then((r) =>
+    (r.data as any[]).map((d) => ({
+      id: d.id,
+      name: d.name,
+      rating: d.rating,
+      cashbackPercent: d.cashbackPercent,
+      distanceKm: d.distanceKm,
+      products: (d.products ?? []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        price: Number(p.price),
+      })),
+    })),
+  );
 
 // ─── Orders ──────────────────────────────────────────────────────────────────
 
-export interface OrderItem {
-  product_id: string;
-  qty: number;
-}
-
 export interface CreateOrderPayload {
-  distributor_id: string;
-  items: OrderItem[];
-  delivery_address: string;
-  payment_method: 'pix' | 'fgol' | 'credit_card';
+  distributorId: string;
+  items: { productId: string; quantity: number }[];
+  deliveryAddress: string;
+  deliveryPostalCode: string;
+  paymentMethod: 'PIX' | 'CARD' | 'FGOL_BALANCE' | 'MIXED';
+  fgolToUse?: number;
 }
 
 export interface Order {
   id: string;
-  distributor_name: string;
-  status: 'pending' | 'confirmed' | 'delivering' | 'delivered' | 'cancelled';
-  total_brl: number;
-  fgol_earned: number;
-  created_at: string;
+  distributor: { name: string };
+  status: 'PENDING' | 'CONFIRMED' | 'IN_DELIVERY' | 'DELIVERED' | 'CANCELLED';
+  total: string; // Decimal serializes as a string
+  fgolUsed: string;
+  createdAt: string;
 }
 
 export const createOrder = (data: CreateOrderPayload): Promise<Order> =>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -10,7 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { apiClient } from '@/api/client';
+import { createOrder } from '@/api/client';
+import type { MainStackParamList } from '@/navigation';
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
 
@@ -23,34 +25,18 @@ const MUTED = '#8896A8';
 
 // ─── Navigation types ─────────────────────────────────────────────────────────
 
-type RootParamList = {
-  OrderConfirm: {
-    distributorId: string;
-    distributorName: string;
-    price: number;
-    cashbackPct: number;
-  };
-  Home: undefined;
-};
+type OrderConfirmRoute = RouteProp<MainStackParamList, 'OrderConfirm'>;
+type NavProp = NativeStackNavigationProp<MainStackParamList>;
 
-type OrderConfirmRoute = RouteProp<RootParamList, 'OrderConfirm'>;
-type NavProp = NativeStackNavigationProp<RootParamList>;
+// ─── Payment methods — values must match the backend's PaymentMethod enum ─────
 
-// ─── Payment methods ──────────────────────────────────────────────────────────
-
-type PaymentMethod = 'PIX' | 'CARD' | 'FGOL';
+type PaymentMethod = 'PIX' | 'CARD' | 'FGOL_BALANCE';
 
 const PAYMENT_OPTIONS: { key: PaymentMethod; label: string }[] = [
   { key: 'PIX', label: 'PIX' },
   { key: 'CARD', label: 'Cartão' },
-  { key: 'FGOL', label: 'Saldo FGOL' },
+  { key: 'FGOL_BALANCE', label: 'Saldo FGOL' },
 ];
-
-const PAYMENT_API_MAP: Record<PaymentMethod, string> = {
-  PIX: 'PIX',
-  CARD: 'credit_card',
-  FGOL: 'fgol',
-};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,10 +49,12 @@ function formatBRL(value: number): string {
 export function OrderConfirmScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<OrderConfirmRoute>();
-  const { distributorId, distributorName, price, cashbackPct } = route.params;
+  const { distributorId, distributorName, productId, price, cashbackPct } = route.params;
 
   const [quantity, setQuantity] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PIX');
+  const [address, setAddress] = useState('');
+  const [postalCode, setPostalCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState(false);
@@ -79,18 +67,30 @@ export function OrderConfirmScreen() {
   };
 
   const handlePlaceOrder = async () => {
+    const trimmedAddress = address.trim();
+    const trimmedPostalCode = postalCode.replace(/\D/g, '');
+    if (!trimmedAddress) {
+      setError('Informe o endereço de entrega.');
+      return;
+    }
+    if (trimmedPostalCode.length !== 8) {
+      setError('Informe um CEP válido (8 dígitos).');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      await apiClient.post('/orders', {
+      await createOrder({
         distributorId,
-        items: [{ productId: 'default', quantity }],
-        paymentMethod: PAYMENT_API_MAP[paymentMethod],
-        channel: 'app',
+        items: [{ productId, quantity }],
+        deliveryAddress: trimmedAddress,
+        deliveryPostalCode: trimmedPostalCode,
+        paymentMethod,
       });
       setSuccessBanner(true);
       setTimeout(() => {
-        navigation.navigate('Home');
+        navigation.navigate('MainTabs');
       }, 1200);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -177,6 +177,33 @@ export function OrderConfirmScreen() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+
+        {/* ── Delivery address ── */}
+        <Text style={styles.sectionLabel}>Endereço de Entrega</Text>
+        <View style={styles.card}>
+          <TextInput
+            style={styles.addressInput}
+            placeholder="Rua, número, bairro, cidade"
+            placeholderTextColor={MUTED}
+            value={address}
+            onChangeText={setAddress}
+            multiline
+          />
+          <View style={styles.addressDivider} />
+          <TextInput
+            style={styles.addressInput}
+            placeholder="CEP (00000-000)"
+            placeholderTextColor={MUTED}
+            keyboardType="number-pad"
+            maxLength={9}
+            value={
+              postalCode.length > 5
+                ? `${postalCode.slice(0, 5)}-${postalCode.slice(5)}`
+                : postalCode
+            }
+            onChangeText={(t) => setPostalCode(t.replace(/\D/g, '').slice(0, 8))}
+          />
         </View>
 
         {/* ── Payment method ── */}
@@ -362,6 +389,18 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   cashbackText: { fontSize: 12, color: '#10B981', fontWeight: '700' },
+
+  // Delivery address
+  addressInput: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    paddingVertical: 6,
+  },
+  addressDivider: {
+    height: 1,
+    backgroundColor: '#1E3050',
+    marginVertical: 10,
+  },
 
   // Product row
   productRow: {

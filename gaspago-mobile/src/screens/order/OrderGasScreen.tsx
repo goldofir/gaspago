@@ -10,8 +10,11 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { getDistributors, Distributor } from '@/api/client';
+import type { MainStackParamList } from '@/navigation';
 
 const FLAME = '#FF6524';
 const NAVY = '#0A1628';
@@ -52,24 +55,29 @@ function DistributorCard({
         <View style={styles.distInfo}>
           <Text style={styles.distName}>{distributor.name}</Text>
           <StarRating rating={distributor.rating} />
-          <Text style={styles.distEta}>📍 {distributor.distance_km.toFixed(1)} km · ⏱ {distributor.eta_minutes} min</Text>
+          {typeof distributor.distanceKm === 'number' && (
+            <Text style={styles.distEta}>📍 {distributor.distanceKm.toFixed(1)} km</Text>
+          )}
         </View>
       </View>
       <View style={styles.distCardBottom}>
         <View>
           <Text style={styles.distPriceLabel}>P13 (13kg)</Text>
           <Text style={styles.distPrice}>
-            R$ {distributor.price_p13.toFixed(2).replace('.', ',')}
+            {distributor.products[0]
+              ? `R$ ${distributor.products[0].price.toFixed(2).replace('.', ',')}`
+              : 'Indisponível'}
           </Text>
         </View>
         <View style={styles.cashbackBadge}>
           <Text style={styles.cashbackText}>
-            +{distributor.cashback_pct}% FGOL
+            +{Math.round(distributor.cashbackPercent * 100)}% FGOL
           </Text>
         </View>
         <TouchableOpacity
-          style={styles.selectBtn}
+          style={[styles.selectBtn, !distributor.products[0] && styles.selectBtnDisabled]}
           onPress={() => onSelect(distributor)}
+          disabled={!distributor.products[0]}
         >
           <Text style={styles.selectBtnText}>Selecionar</Text>
         </TouchableOpacity>
@@ -78,7 +86,10 @@ function DistributorCard({
   );
 }
 
+type NavProp = NativeStackNavigationProp<MainStackParamList>;
+
 export function OrderGasScreen() {
+  const navigation = useNavigation<NavProp>();
   const [cep, setCep] = useState('');
   const [searchCep, setSearchCep] = useState<string | null>(null);
 
@@ -110,10 +121,18 @@ export function OrderGasScreen() {
   };
 
   const handleSelect = (d: Distributor) => {
-    Alert.alert(
-      'Distribuidor selecionado',
-      `Você escolheu: ${d.name}\nNavegação para seleção de produto em breve.`,
-    );
+    const product = d.products[0];
+    if (!product) {
+      Alert.alert('Indisponível', 'Esta distribuidora não tem produtos disponíveis no momento.');
+      return;
+    }
+    navigation.navigate('OrderConfirm', {
+      distributorId: d.id,
+      distributorName: d.name,
+      productId: product.id,
+      price: product.price,
+      cashbackPct: Math.round(d.cashbackPercent * 100),
+    });
   };
 
   return (
@@ -323,6 +342,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
+  selectBtnDisabled: { opacity: 0.4 },
   selectBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   placeholder: {
     marginHorizontal: 20,

@@ -36,6 +36,7 @@ export type MainStackParamList = {
   OrderConfirm: {
     distributorId: string;
     distributorName: string;
+    productId: string;
     price: number;
     cashbackPct: number;
   };

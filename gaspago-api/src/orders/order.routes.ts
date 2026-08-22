@@ -26,6 +26,18 @@ export async function orderRoutes(app: FastifyInstance) {
     return findDistributorsByPostalCode(cep ?? '')
   })
 
+  // GET /orders?limit= — authenticated customer's own order history
+  app.get('/', { preHandler: requireAuth }, async (req) => {
+    const customerId = (req as any).user.id as string
+    const { limit } = req.query as { limit?: string }
+    return prisma.order.findMany({
+      where: { customerId },
+      include: { distributor: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: limit ? Number(limit) : 20,
+    })
+  })
+
   // POST /orders — create order (requires a logged-in consumer)
   app.post('/', { preHandler: requireAuth }, async (req, reply) => {
     const body = CreateOrderSchema.parse(req.body)
