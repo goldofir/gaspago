@@ -296,13 +296,19 @@ export default function Home() {
         .footer {
           border-top: 1px solid rgba(255,255,255,.08);
           padding: 40px clamp(20px, 6vw, 72px);
-          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px;
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;
         }
         .footer-brand { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 15px; color: #fff; }
-        .footer-links { display: flex; gap: 22px; }
+        .footer-links { display: flex; flex-wrap: wrap; gap: 12px 20px; }
         .footer-links a { color: #7C8DA6; font-size: 13px; text-decoration: none; transition: color .2s; }
         .footer-links a:hover { color: #fff; text-decoration: none; }
-        .footer-copy { font-size: 12.5px; color: #51617A; width: 100%; text-align: left; margin-top: 6px; }
+        .footer-copy { font-size: 12.5px; color: #51617A; width: 100%; text-align: left; margin-top: 8px; }
+
+        @media (max-width: 600px) {
+          .footer { flex-direction: column; align-items: flex-start; gap: 24px; }
+          .footer-links { gap: 10px 16px; width: 100%; }
+        }
+
 
         /* ——— Mobile ——— */
         @media (max-width: 1100px) {
