@@ -128,7 +128,7 @@ export function OtpScreen({ route, navigation }: Props) {
             {digits.map((d, i) => (
               <TextInput
                 key={i}
-                ref={(el) => (inputs.current[i] = el)}
+                ref={(el) => { inputs.current[i] = el }}
                 style={[
                   styles.otpBox,
                   d ? styles.otpBoxFilled : undefined,

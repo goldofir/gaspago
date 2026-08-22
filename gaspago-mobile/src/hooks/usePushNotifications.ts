@@ -10,6 +10,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 })
 
@@ -41,8 +43,8 @@ async function registerForPushNotifications(): Promise<string | null> {
 
 export function usePushNotifications() {
   const { token: authToken } = useAuthStore()
-  const notifListener = useRef<Notifications.Subscription>()
-  const responseListener = useRef<Notifications.Subscription>()
+  const notifListener = useRef<Notifications.Subscription | undefined>(undefined)
+  const responseListener = useRef<Notifications.Subscription | undefined>(undefined)
   const API = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.0.100:3030'
 
   useEffect(() => {
@@ -72,8 +74,8 @@ export function usePushNotifications() {
     })
 
     return () => {
-      if (notifListener.current) Notifications.removeNotificationSubscription(notifListener.current)
-      if (responseListener.current) Notifications.removeNotificationSubscription(responseListener.current)
+      notifListener.current?.remove()
+      responseListener.current?.remove()
     }
   }, [authToken])
 }
