@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@/navigation';
-import { login, loginWithGoogle } from '@/api/client';
+import { login, loginWithGoogle, getGoogleClientId } from '@/api/client';
 import { useAuthStore } from '@/store/auth.store';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -50,8 +50,13 @@ export function PhoneScreen({ navigation }: Props) {
 
   const { setToken, setUser } = useAuthStore();
 
+  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
+  React.useEffect(() => {
+    getGoogleClientId().then(setGoogleClientId).catch(() => setGoogleClientId(null));
+  }, []);
+
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
+    clientId: googleClientId ?? '',
     selectAccount: true,
   });
 

@@ -63,6 +63,13 @@ export async function loginWithGoogle(idToken: string) {
   return res.data as { token: string; user: User };
 }
 
+// Client ID is fetched from the backend (SuperAdmin -> Credenciais) instead of a
+// build-time env var, so changing it doesn't require editing .env or rebuilding.
+export async function getGoogleClientId(): Promise<string | null> {
+  const res = await apiClient.get('/auth/google-client-id');
+  return res.data?.clientId ?? null;
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 export interface User {
