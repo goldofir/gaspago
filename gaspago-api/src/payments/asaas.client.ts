@@ -23,6 +23,13 @@ export async function createSubAccount(data: {
   return res.data as { id: string; walletId: string; apiKey: string }
 }
 
+export async function createCustomer(data: {
+  name: string; cpfCnpj?: string; email?: string; mobilePhone?: string; externalReference?: string
+}) {
+  const res = await asaas().post('/customers', data)
+  return res.data as { id: string }
+}
+
 export async function createPixCharge(data: {
   customer: string; value: number; description: string; externalReference?: string
 }) {
@@ -54,4 +61,15 @@ export async function getBalance() {
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
+}
+
+// Asaas returns a real, human-readable description on 400s (e.g. "Para criar
+// esta cobrança é necessário preencher o CPF ou CNPJ do cliente.") — surface
+// that instead of a raw axios error dump.
+export function asaasErrorMessage(err: any): string | null {
+  const errors = err?.response?.data?.errors
+  if (Array.isArray(errors) && errors.length) {
+    return errors.map((e: any) => e.description).join(' ')
+  }
+  return null
 }

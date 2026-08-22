@@ -198,6 +198,7 @@ export interface PosPaymentResponse {
   pixAmount: number;
   establishmentName: string;
   totalAmount: number;
+  status?: 'AWAITING_PAYMENT';
 }
 
 export const scanPosQr = (
@@ -287,6 +288,13 @@ export interface CheckoutResponse {
   fgolUsed: number;
   pixAmount: number;
   cashbackEarned: number;
+  // Present only when pixAmount > 0 — a real PIX charge was created and
+  // payment is not yet confirmed (status: 'AWAITING_PAYMENT'). When the
+  // order was fully covered by FGOL, none of these are set and the purchase
+  // already completed.
+  status?: 'AWAITING_PAYMENT';
+  pixQrCode?: string;
+  pixPayload?: string;
 }
 
 export const marketplaceCheckout = (

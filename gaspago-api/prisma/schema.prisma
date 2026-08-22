@@ -136,6 +136,11 @@ model User {
   asaasSubAccountId String? @unique
   asaasPixKey       String?
 
+  // Asaas Customer record — for consumers, so a real PIX charge can be created
+  // against them at checkout (POS/marketplace/order). Created lazily on first
+  // charge and cached here so we never create duplicate Asaas customers.
+  asaasCustomerId String? @unique
+
   actorType ActorType @default(CONSUMER)
 
   // Portal login (DISTRIBUTOR / CREDENCIADOR / ESTABLISHMENT staff) — bcrypt hash, never plaintext

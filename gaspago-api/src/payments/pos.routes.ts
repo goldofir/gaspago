@@ -3,10 +3,10 @@ import { randomUUID } from 'crypto'
 import { z } from 'zod'
 import { SignJWT, jwtVerify } from 'jose'
 import { prisma } from '../shared/prisma'
-import { createPixCharge, internalTransfer } from './asaas.client'
+import { createPixCharge, getPixQrCode, internalTransfer, asaasErrorMessage } from './asaas.client'
+import { getOrCreateCustomerId } from './customer.service'
+import { finalizePosPayment } from './pos-payment.service'
 import { config } from '../config'
-import { distributeCommissionsPos } from '../commissions/pos-commission.service'
-import { queueRedemptionPullback } from '../wallet/wallet-treasury.service'
 import { requireRole } from '../shared/auth.middleware'
 
 const secret = new TextEncoder().encode(config.pos.qrJwtSecret)
@@ -148,6 +148,43 @@ export async function posRoutes(app: FastifyInstance) {
       await prisma.user.update({ where: { id: customerId }, data: { fgolBalance: { decrement: body.fgolToUse } } })
     }
 
+    if (pixAmount === 0) {
+      // Fully covered by FGOL — nothing to actually collect, no reason to wait
+      // on a real charge. Settle immediately, same as before.
+      await prisma.posPayment.update({
+        where: { id: posPaymentId },
+        data: { customerId, fgolUsed: body.fgolToUse, fgolBrlValue, pixAmount, status: 'PAID', settledAt: new Date() },
+      })
+      await finalizePosPayment(posPaymentId)
+
+      return reply.send({
+        posPaymentId,
+        establishmentName: est.name,
+        totalAmount: posPayment.totalAmount,
+        fgolUsed: body.fgolToUse,
+        pixAmount,
+      })
+    }
+
+    // Real money is owed — create an actual Asaas PIX charge and wait for the
+    // webhook (asaas.webhook.ts) to confirm before settling. The previous
+    // version marked this PAID immediately without ever billing the consumer.
+    let charge: Awaited<ReturnType<typeof createPixCharge>>
+    try {
+      const asaasCustomerId = await getOrCreateCustomerId(customerId)
+      charge = await createPixCharge({
+        customer: asaasCustomerId,
+        value: pixAmount,
+        description: `Gás Pago — ${est.name}`,
+        externalReference: posPaymentId,
+      })
+    } catch (err: any) {
+      // Charge already existed as AWAITING_SCAN (created by the establishment) —
+      // leave it as-is so the consumer can retry the scan instead of orphaning it.
+      return reply.status(400).send({ error: asaasErrorMessage(err) ?? 'Não foi possível gerar a cobrança PIX. Tente novamente.' })
+    }
+    const pixQr = charge.pixQrCode ?? (await getPixQrCode(charge.id).catch(() => undefined))
+
     await prisma.posPayment.update({
       where: { id: posPaymentId },
       data: {
@@ -155,27 +192,20 @@ export async function posRoutes(app: FastifyInstance) {
         fgolUsed: body.fgolToUse,
         fgolBrlValue,
         pixAmount,
-        status: 'PAID',
-        settledAt: new Date(),
+        status: 'AWAITING_PAYMENT',
+        asaasChargeId: charge.id,
       },
     })
 
-    const settled = await prisma.posPayment.findUniqueOrThrow({ where: { id: posPaymentId } })
-    await distributeCommissionsPos(settled)
-
-    // DB balance already settled the sale above (the establishment's PIX side is done)
-    // — pulling the equivalent FGOL back from the wallet on-chain is queued for the
-    // background worker and never blocks the in-person payment.
-    if (body.fgolToUse > 0 && customerId !== null) {
-      await queueRedemptionPullback(customerId, body.fgolToUse, 'pos_payment', settled.id)
-    }
-
     return reply.send({
-      posPaymentId: settled.id,
+      posPaymentId,
       establishmentName: est.name,
-      totalAmount: settled.totalAmount,
+      totalAmount: posPayment.totalAmount,
       fgolUsed: body.fgolToUse,
       pixAmount,
+      pixQrCode: (pixQr as any)?.encodedImage,
+      pixPayload: (pixQr as any)?.payload,
+      status: 'AWAITING_PAYMENT',
     })
   })
 

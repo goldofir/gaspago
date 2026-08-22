@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../shared/prisma'
 import { SystemConfigService } from '../shared/system-config.service'
+import { finalizePosPayment } from './pos-payment.service'
 
 export async function asaasWebhookRoutes(app: FastifyInstance) {
   app.post('/webhook/asaas', {
@@ -49,13 +50,25 @@ export async function asaasWebhookRoutes(app: FastifyInstance) {
 
     // 2. Handle event types
     if (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') {
+      const posPayment = await prisma.posPayment.findFirst({ where: { asaasChargeId: payment.id } })
+      if (posPayment) {
+        if (posPayment.status === 'AWAITING_PAYMENT') {
+          await prisma.posPayment.update({ where: { id: posPayment.id }, data: { status: 'PAID', settledAt: new Date() } })
+          await finalizePosPayment(posPayment.id)
+          app.log.info({ posPaymentId: posPayment.id, event }, 'asaas.webhook: POS payment confirmed')
+        } else {
+          app.log.info({ posPaymentId: posPayment.id, status: posPayment.status }, 'asaas.webhook: POS payment already settled, ignoring duplicate event')
+        }
+        return reply.send({ ok: true })
+      }
+
       const order = await prisma.order.findFirst({
         where: { asaasChargeId: payment.id },
       })
 
       if (!order) {
-        app.log.warn({ paymentId: payment.id, event }, 'asaas.webhook: order not found for paymentId')
-        return reply.send({ ok: true, event: 'order_not_found' })
+        app.log.warn({ paymentId: payment.id, event }, 'asaas.webhook: no order or POS payment found for paymentId')
+        return reply.send({ ok: true, event: 'not_found' })
       }
 
       const updates: Record<string, unknown> = { paymentStatus: 'PAID' }
@@ -73,13 +86,22 @@ export async function asaasWebhookRoutes(app: FastifyInstance) {
     }
 
     if (event === 'PAYMENT_OVERDUE' || event === 'PAYMENT_DELETED') {
+      const posPayment = await prisma.posPayment.findFirst({ where: { asaasChargeId: payment.id } })
+      if (posPayment) {
+        if (posPayment.status === 'AWAITING_PAYMENT') {
+          await prisma.posPayment.update({ where: { id: posPayment.id }, data: { status: 'CANCELLED' } })
+          app.log.info({ posPaymentId: posPayment.id, event }, 'asaas.webhook: POS payment cancelled/overdue')
+        }
+        return reply.send({ ok: true })
+      }
+
       const order = await prisma.order.findFirst({
         where: { asaasChargeId: payment.id },
       })
 
       if (!order) {
-        app.log.warn({ paymentId: payment.id, event }, 'asaas.webhook: order not found for paymentId')
-        return reply.send({ ok: true, event: 'order_not_found' })
+        app.log.warn({ paymentId: payment.id, event }, 'asaas.webhook: no order or POS payment found for paymentId')
+        return reply.send({ ok: true, event: 'not_found' })
       }
 
       await prisma.order.update({

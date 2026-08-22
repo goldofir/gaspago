@@ -3,8 +3,9 @@ import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import { prisma } from '../shared/prisma'
 import { requireAuth } from '../shared/auth.middleware'
-import { distributeCommissionsPos } from '../commissions/pos-commission.service'
-import { queueRedemptionPullback } from '../wallet/wallet-treasury.service'
+import { createPixCharge, getPixQrCode, asaasErrorMessage } from '../payments/asaas.client'
+import { getOrCreateCustomerId } from '../payments/customer.service'
+import { finalizePosPayment } from '../payments/pos-payment.service'
 import { config } from '../config'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -88,15 +89,11 @@ export async function marketplaceRoutes(app: FastifyInstance) {
       if (!user || Number(user.fgolBalance) < body.fgolToUse) {
         return reply.status(400).send({ error: 'Saldo FGOL insuficiente.' })
       }
-      await prisma.user.update({ where: { id: customerId }, data: { fgolBalance: { decrement: body.fgolToUse } } })
     }
 
     const pixAmount = Math.max(0, totalAmount - body.fgolToUse)
     const marginOffered = totalAmount * est.cashbackPercent
 
-    // No physical QR/scan step in this flow — the record is created already PAID.
-    // Real PIX capture (createPixCharge via Asaas) is a follow-up integration; this mirrors
-    // the same "mark as settled at creation" simplification the existing /pos/scan flow uses.
     const posPayment = await prisma.posPayment.create({
       data: {
         establishmentId: est.id,
@@ -109,18 +106,50 @@ export async function marketplaceRoutes(app: FastifyInstance) {
         cashbackPercent: est.cashbackPercent,
         qrToken: randomUUID(),
         qrExpiresAt: new Date(),
-        status: 'PAID',
-        settledAt: new Date(),
+        status: pixAmount === 0 ? 'PAID' : 'AWAITING_PAYMENT',
+        settledAt: pixAmount === 0 ? new Date() : null,
       },
     })
 
-    await distributeCommissionsPos(posPayment)
+    if (pixAmount === 0) {
+      // Fully covered by FGOL — debit now and settle immediately, nothing to collect.
+      if (body.fgolToUse > 0) {
+        await prisma.user.update({ where: { id: customerId }, data: { fgolBalance: { decrement: body.fgolToUse } } })
+      }
+      await finalizePosPayment(posPayment.id)
 
-    // DB balance already settled the purchase above — pulling the equivalent FGOL
-    // back from the user's wallet on-chain is queued for the background worker and
-    // never blocks the payment.
+      return reply.status(201).send({
+        posPaymentId: posPayment.id,
+        establishmentName: est.name,
+        totalAmount,
+        fgolUsed: body.fgolToUse,
+        pixAmount,
+        cashbackEarned: Math.round(marginOffered * config.commission.consumerPct * 100) / 100,
+      })
+    }
+
+    // Real money is owed — create the Asaas PIX charge and wait for the webhook
+    // (asaas.webhook.ts) to confirm before settling and distributing commissions.
+    // FGOL is only debited once the charge exists, so a failed charge never
+    // leaves the consumer's balance drained with nothing to show for it.
+    let charge: Awaited<ReturnType<typeof createPixCharge>>
+    try {
+      const asaasCustomerId = await getOrCreateCustomerId(customerId)
+      charge = await createPixCharge({
+        customer: asaasCustomerId,
+        value: pixAmount,
+        description: `Gás Pago — ${est.name}`,
+        externalReference: posPayment.id,
+      })
+    } catch (err: any) {
+      await prisma.posPayment.delete({ where: { id: posPayment.id } })
+      return reply.status(400).send({ error: asaasErrorMessage(err) ?? 'Não foi possível gerar a cobrança PIX. Tente novamente.' })
+    }
+    const pixQr = charge.pixQrCode ?? (await getPixQrCode(charge.id).catch(() => undefined))
+
+    await prisma.posPayment.update({ where: { id: posPayment.id }, data: { asaasChargeId: charge.id } })
     if (body.fgolToUse > 0) {
-      await queueRedemptionPullback(customerId, body.fgolToUse, 'marketplace_payment', posPayment.id)
+      await prisma.user.update({ where: { id: customerId }, data: { fgolBalance: { decrement: body.fgolToUse } } })
     }
 
     return reply.status(201).send({
@@ -129,7 +158,9 @@ export async function marketplaceRoutes(app: FastifyInstance) {
       totalAmount,
       fgolUsed: body.fgolToUse,
       pixAmount,
-      // consumer cashback share — kept in sync with the commission engine via config.commission.consumerPct
+      pixQrCode: (pixQr as any)?.encodedImage,
+      pixPayload: (pixQr as any)?.payload,
+      status: 'AWAITING_PAYMENT',
       cashbackEarned: Math.round(marginOffered * config.commission.consumerPct * 100) / 100,
     })
   })

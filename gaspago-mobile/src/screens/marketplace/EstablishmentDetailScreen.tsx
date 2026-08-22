@@ -304,7 +304,7 @@ export function EstablishmentDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Success modal ── */}
+      {/* ── Success / awaiting payment modal ── */}
       <Modal
         visible={!!successData}
         transparent
@@ -313,13 +313,35 @@ export function EstablishmentDetailScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalEmoji}>🎉</Text>
-            <Text style={styles.modalTitle}>Pedido confirmado!</Text>
-            <Text style={styles.modalBody}>
-              {successData
-                ? `Você ganhou ${successData.cashbackEarned} FGOL de cashback em ${successData.establishmentName}.`
-                : ''}
-            </Text>
+            {successData?.status === 'AWAITING_PAYMENT' ? (
+              <>
+                <Text style={styles.modalEmoji}>💳</Text>
+                <Text style={styles.modalTitle}>Pague com PIX para confirmar</Text>
+                <Text style={styles.modalBody}>
+                  {`Pedido em ${successData.establishmentName} — ${formatBRL(successData.pixAmount)} via PIX. Copie o código abaixo no app do seu banco.`}
+                </Text>
+                {!!successData.pixPayload && (
+                  <View style={styles.pixCodeBox}>
+                    <Text style={styles.pixCodeText} numberOfLines={3} selectable>
+                      {successData.pixPayload}
+                    </Text>
+                  </View>
+                )}
+                <Text style={styles.modalHint}>
+                  O pedido é confirmado automaticamente assim que o pagamento cair.
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalEmoji}>🎉</Text>
+                <Text style={styles.modalTitle}>Pedido confirmado!</Text>
+                <Text style={styles.modalBody}>
+                  {successData
+                    ? `Você ganhou ${successData.cashbackEarned} FGOL de cashback em ${successData.establishmentName}.`
+                    : ''}
+                </Text>
+              </>
+            )}
             <TouchableOpacity
               style={styles.modalBtn}
               onPress={handleCloseSuccess}
@@ -547,6 +569,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 22,
+  },
+  pixCodeBox: {
+    backgroundColor: GROUND,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  pixCodeText: {
+    fontSize: 11,
+    color: NAVY,
+    fontFamily: 'monospace',
+  },
+  modalHint: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginBottom: 18,
   },
   modalBtn: {
     backgroundColor: FLAME,

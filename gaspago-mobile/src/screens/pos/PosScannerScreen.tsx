@@ -21,6 +21,7 @@ interface ScanResult {
   pixAmount: number;
   pixQrCode?: string;
   pixPayload?: string;
+  status?: 'AWAITING_PAYMENT';
 }
 
 export function PosScannerScreen() {
@@ -148,6 +149,39 @@ export function PosScannerScreen() {
     );
   }
 
+  if (step === 'success' && result && result.status === 'AWAITING_PAYMENT') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.center}>
+            <Text style={{ fontSize: 56 }}>💳</Text>
+            <Text style={styles.title}>Pague com PIX para confirmar</Text>
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>Estabelecimento</Text>
+              <Text style={styles.cardValue}>{result.establishmentName}</Text>
+              <Text style={styles.cardLabel}>Valor via PIX</Text>
+              <Text style={styles.cardValue}>
+                R$ {Number(result.pixAmount).toFixed(2).replace('.', ',')}
+              </Text>
+              {!!result.pixPayload && (
+                <>
+                  <Text style={styles.cardLabel}>Copia e cola</Text>
+                  <Text style={[styles.cardValue, styles.pixPayloadText]} selectable>
+                    {result.pixPayload}
+                  </Text>
+                </>
+              )}
+            </View>
+            <Text style={styles.subtitle}>O pagamento é confirmado automaticamente assim que cair.</Text>
+            <TouchableOpacity style={styles.scanBtn} onPress={reset}>
+              <Text style={styles.scanBtnText}>Novo Pagamento</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   if (step === 'success' && result) {
     return (
       <SafeAreaView style={styles.container}>
@@ -224,6 +258,7 @@ const styles = StyleSheet.create({
   },
   cardLabel: { fontSize: 11, color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 12, marginBottom: 2 },
   cardValue: { fontSize: 16, fontWeight: '700', color: NAVY },
+  pixPayloadText: { fontSize: 11, fontWeight: '500', fontFamily: 'monospace' },
   input: {
     borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10,
     padding: 12, fontSize: 18, fontWeight: '700', color: NAVY,
