@@ -353,11 +353,16 @@ export default function Home() {
       <section className="hero">
         <FlameCanvas />
         <div className="hero-inner">
-          <h1><span className="pay">Peça, pague e ganhe.</span><br />Seu gás chega em minutos.</h1>
+          <div style={{ marginBottom: 16, display: 'inline-flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--flame)', background: 'rgba(255,101,36,0.12)', padding: '6px 18px', borderRadius: 20, border: '1px solid rgba(255,101,36,0.25)' }}>
+              Quanto você ganha para consumir hoje?
+            </span>
+          </div>
+          <h1><span className="pay">E se você pudesse ganhar R$ 1</span> de cada brasileiro todo mês?</h1>
           <p className="hero-sub">
-            Peça o botijão pelo app ou WhatsApp, pague como quiser — PIX, cartão ou FGOL —
-            e ganhe cashback a cada entrega. Peça, pague e ganhe: simples assim.
+            Conheça o <strong>Gás Pago</strong>: a plataforma de <strong>economia compartilhada</strong> onde o seu consumo e suas compras no balcão ativam um sistema de compensação financeira recorrente com o token FGOL e nossa rede de afiliados.
           </p>
+
           <div className="hero-ctas">
             <a className="btn-primary" href="#baixar">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
