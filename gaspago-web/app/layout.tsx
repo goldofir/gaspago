@@ -4,7 +4,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaspago.app'
 
 const SITE_NAME = 'Gás Pago'
 const DEFAULT_DESCRIPTION =
-  'Ecossistema de compensação financeira e economia recorrente. Transforme seu consumo e compras em retornos com o token FGOL e potencialize seus ganhos com nossa rede de afiliados.'
+  'Plataforma de economia compartilhada e sistema de compensação. Transforme seu consumo e compras em retornos financeiros com o token FGOL e nossa rede de afiliados.'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -16,17 +16,17 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     template: '%s | Gás Pago',
-    default: 'Gás Pago - Ecossistema de Compensação Financeira & Economia Recorrente',
+    default: 'Gás Pago - Plataforma de Economia Compartilhada & Sistema de Compensação',
   },
   description: DEFAULT_DESCRIPTION,
   keywords: [
-    'ecossistema de compensação',
-    'economia recorrente',
+    'economia compartilhada',
+    'sistema de compensação',
     'token FGOL',
     'rede de afiliados',
-    'cashback inteligente',
+    'consumo inteligente',
     'fidelidade no balcão',
-    'marketplace de recompensas',
+    'plataforma de recompensas',
     'gás pago',
   ],
   authors: [{ name: SITE_NAME, url: SITE_URL }],
