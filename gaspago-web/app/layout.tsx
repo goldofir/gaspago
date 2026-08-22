@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaspago.com.br'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaspago.app'
+
 const SITE_NAME = 'Gás Pago'
 const DEFAULT_DESCRIPTION =
   'Peça gás de cozinha pelo app ou WhatsApp e receba na sua porta. Ganhe cashback em FGOL a cada pedido e economize toda vez.'
