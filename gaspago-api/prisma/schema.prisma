@@ -226,7 +226,23 @@ model Establishment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  posPayments PosPayment[]
+  posPayments      PosPayment[]
+  marketplaceItems MarketplaceItem[]
+}
+
+// ─── MARKETPLACE CATALOG (items an establishment sells through the marketplace) ─
+
+model MarketplaceItem {
+  id              String        @id @default(cuid())
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  name            String
+  description     String?
+  price           Decimal       @db.Decimal(10, 2)
+  imageUrl        String?
+  isAvailable     Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }
 
 // ─── PRODUCTS (gas + other distributor products) ──────────────────────────────

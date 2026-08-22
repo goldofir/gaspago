@@ -318,9 +318,9 @@ export default function Home() {
         @media (max-width: 700px) {
           .nav-links {
             display: none;
-            position: fixed; top: 0; right: 0; bottom: 0; width: min(78vw, 320px);
+            position: fixed; top: 0; right: 0; bottom: 0; height: 100vh; width: min(78vw, 320px);
             background: var(--navy-mid); flex-direction: column; align-items: flex-start;
-            padding: 90px 32px 32px; gap: 24px; z-index: 60;
+            padding: 90px 32px 32px; gap: 24px; z-index: 60; overflow-y: auto;
             box-shadow: -20px 0 60px rgba(0,0,0,.4);
           }
           .nav-links.open { display: flex; }

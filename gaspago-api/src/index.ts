@@ -17,6 +17,8 @@ import { subscriptionRoutes } from './subscriptions/subscription.routes'
 
 import { credenciadorRoutes } from './credenciador/credenciador.routes'
 import { establishmentRoutes } from './establishments/establishment.routes'
+import { marketplaceRoutes } from './marketplace/marketplace.routes'
+import { catalogRoutes } from './marketplace/catalog.routes'
 import { startSchedulers } from './shared/scheduler'
 
 async function bootstrap() {
@@ -42,8 +44,10 @@ async function bootstrap() {
   app.register(affiliateRoutes, { prefix: '/affiliates' })
   app.register(paymentRoutes, { prefix: '/payments' })
   app.register(posRoutes, { prefix: '/pos' })
+  app.register(catalogRoutes, { prefix: '/pos' })
   app.register(credenciadorRoutes, { prefix: '/credenciador' })
   app.register(establishmentRoutes, { prefix: '/establishments' })
+  app.register(marketplaceRoutes, { prefix: '/marketplace' })
   app.register(waWebhookRoutes, { prefix: '/webhook' })
   app.register(asaasWebhookRoutes)
   app.register(authRoutes, { prefix: '/auth' })

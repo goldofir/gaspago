@@ -10,6 +10,8 @@ import { WalletScreen } from '@/screens/wallet/WalletScreen';
 import { OrderGasScreen } from '@/screens/order/OrderGasScreen';
 import { OrderConfirmScreen } from '@/screens/order/OrderConfirmScreen';
 import { MarketplaceScreen } from '@/screens/marketplace/MarketplaceScreen';
+import { EstablishmentListScreen } from '@/screens/marketplace/EstablishmentListScreen';
+import { EstablishmentDetailScreen } from '@/screens/marketplace/EstablishmentDetailScreen';
 import { ProfileScreen } from '@/screens/profile/ProfileScreen';
 import { PosScannerScreen } from '@/screens/pos/PosScannerScreen';
 import { MatrixNetworkScreen } from '@/screens/profile/MatrixNetworkScreen';
@@ -39,6 +41,8 @@ export type MainStackParamList = {
   };
   PosScanner: undefined;
   MatrixNetwork: undefined;
+  EstablishmentList: { category: string; categoryLabel: string };
+  EstablishmentDetail: { establishmentId: string };
 };
 
 // ─── Auth Navigator ───────────────────────────────────────────────────────────
@@ -133,6 +137,16 @@ export function MainNavigator() {
       <MainStack.Screen
         name="MatrixNetwork"
         component={MatrixNetworkScreen}
+        options={{ presentation: 'card' }}
+      />
+      <MainStack.Screen
+        name="EstablishmentList"
+        component={EstablishmentListScreen}
+        options={{ presentation: 'card' }}
+      />
+      <MainStack.Screen
+        name="EstablishmentDetail"
+        component={EstablishmentDetailScreen}
         options={{ presentation: 'card' }}
       />
     </MainStack.Navigator>

@@ -195,3 +195,72 @@ export interface MatrixData {
 
 export const getMatrix = (userId: string): Promise<MatrixData> =>
   apiClient.get(`/affiliates/${userId}/matrix`).then((r) => r.data);
+
+// ─── Marketplace ───────────────────────────────────────────────────────────────
+
+export interface MarketplaceCategory {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export const getMarketplaceCategories = (): Promise<MarketplaceCategory[]> =>
+  apiClient.get('/marketplace/categories').then((r) => r.data);
+
+export interface MarketplaceEstablishment {
+  id: string;
+  name: string;
+  category: string;
+  city: string;
+  state: string;
+  rating: number;
+  cashbackPercent: number;
+  distanceKm?: number;
+}
+
+export const getMarketplaceEstablishments = (params: {
+  category?: string;
+  lat?: number;
+  lng?: number;
+}): Promise<MarketplaceEstablishment[]> =>
+  apiClient
+    .get('/marketplace/establishments', { params })
+    .then((r) => r.data);
+
+export interface MarketplaceItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  isAvailable: boolean;
+}
+
+export interface EstablishmentDetail extends MarketplaceEstablishment {
+  marketplaceItems: MarketplaceItem[];
+}
+
+export const getEstablishmentDetail = (
+  id: string,
+): Promise<EstablishmentDetail> =>
+  apiClient.get(`/marketplace/establishments/${id}`).then((r) => r.data);
+
+export interface CheckoutPayload {
+  establishmentId: string;
+  items: { itemId: string; quantity: number }[];
+  fgolToUse?: number;
+}
+
+export interface CheckoutResponse {
+  posPaymentId: string;
+  establishmentName: string;
+  totalAmount: number;
+  fgolUsed: number;
+  pixAmount: number;
+  cashbackEarned: number;
+}
+
+export const marketplaceCheckout = (
+  data: CheckoutPayload,
+): Promise<CheckoutResponse> =>
+  apiClient.post('/marketplace/checkout', data).then((r) => r.data);

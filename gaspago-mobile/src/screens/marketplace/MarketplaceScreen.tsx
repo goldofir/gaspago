@@ -7,44 +7,62 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useQuery } from '@tanstack/react-query';
+import { getMarketplaceCategories, MarketplaceCategory } from '@/api/client';
+import type { MainStackParamList } from '@/navigation';
 
 const FLAME = '#FF6524';
 const NAVY = '#0A1628';
 const GROUND = '#F4F6FA';
 
-interface Category {
-  id: string;
-  icon: string;
-  label: string;
-  count: number;
-  color: string;
-}
+type NavProp = NativeStackNavigationProp<MainStackParamList>;
 
-const CATEGORIES: Category[] = [
-  { id: 'restaurants', icon: '🍽️', label: 'Restaurantes', count: 142, color: '#FEF3C7' },
-  { id: 'pharmacies', icon: '💊', label: 'Farmácias', count: 38, color: '#DBEAFE' },
-  { id: 'markets', icon: '🛒', label: 'Mercados', count: 67, color: '#D1FAE5' },
-  { id: 'services', icon: '🔧', label: 'Serviços', count: 94, color: '#EDE9FE' },
-  { id: 'beauty', icon: '💅', label: 'Beleza', count: 55, color: '#FCE7F3' },
-  { id: 'bakeries', icon: '🥐', label: 'Padarias', count: 29, color: '#FEF9C3' },
-  { id: 'petshop', icon: '🐾', label: 'Pet Shop', count: 18, color: '#DCFCE7' },
-  { id: 'auto', icon: '🚗', label: 'Automotivo', count: 41, color: '#E0F2FE' },
+// Category cards cycle through this palette since the API doesn't return one.
+const CARD_COLORS = [
+  '#FEF3C7',
+  '#DBEAFE',
+  '#D1FAE5',
+  '#EDE9FE',
+  '#FCE7F3',
+  '#FEF9C3',
+  '#DCFCE7',
+  '#E0F2FE',
 ];
 
-function CategoryCard({ category }: { category: Category }) {
+// The API returns key/label/count only — icons are derived locally by key.
+const CATEGORY_ICONS: Record<string, string> = {
+  restaurante: '🍽️',
+  farmacia: '💊',
+  mercado: '🛒',
+  beleza: '💅',
+  servico: '🔧',
+  pet: '🐾',
+  educacao: '📚',
+  automotivo: '🚗',
+};
+
+const DEFAULT_ICON = '🏪';
+
+function CategoryCard({
+  category,
+  color,
+  onPress,
+}: {
+  category: MarketplaceCategory;
+  color: string;
+  onPress: () => void;
+}) {
+  const icon = CATEGORY_ICONS[category.key] ?? DEFAULT_ICON;
   return (
     <TouchableOpacity
       style={styles.catCard}
       activeOpacity={0.85}
-      onPress={() => {}}
+      onPress={onPress}
     >
-      {/* Coming soon overlay */}
-      <View style={styles.comingSoonOverlay}>
-        <Text style={styles.comingSoonText}>Em breve</Text>
-      </View>
-
-      <View style={[styles.catIcon, { backgroundColor: category.color }]}>
-        <Text style={styles.catEmoji}>{category.icon}</Text>
+      <View style={[styles.catIcon, { backgroundColor: color }]}>
+        <Text style={styles.catEmoji}>{icon}</Text>
       </View>
       <Text style={styles.catLabel}>{category.label}</Text>
       <Text style={styles.catCount}>{category.count} parceiros</Text>
@@ -52,7 +70,31 @@ function CategoryCard({ category }: { category: Category }) {
   );
 }
 
+function CategorySkeleton() {
+  return (
+    <View style={styles.grid}>
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <View key={i} style={styles.catCard}>
+          <View style={styles.skeletonIcon} />
+          <View style={styles.skeletonLine} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function MarketplaceScreen() {
+  const navigation = useNavigation<NavProp>();
+
+  const {
+    data: categories = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['marketplace-categories'],
+    queryFn: getMarketplaceCategories,
+  });
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
@@ -68,37 +110,42 @@ export function MarketplaceScreen() {
           </Text>
         </View>
 
-        {/* ── Coming soon banner ── */}
-        <View style={styles.banner}>
-          <Text style={styles.bannerIcon}>🚀</Text>
-          <View style={styles.bannerText}>
-            <Text style={styles.bannerTitle}>Em desenvolvimento</Text>
-            <Text style={styles.bannerBody}>
-              O marketplace está sendo construído. Em breve você poderá usar
-              seus FGOL em centenas de estabelecimentos parceiros!
-            </Text>
-          </View>
-        </View>
-
         {/* ── Categories grid ── */}
         <Text style={styles.sectionTitle}>Categorias</Text>
-        <View style={styles.grid}>
-          {CATEGORIES.map((cat) => (
-            <CategoryCard key={cat.id} category={cat} />
-          ))}
-        </View>
-
-        {/* ── Notify me card ── */}
-        <View style={styles.notifyCard}>
-          <Text style={styles.notifyEmoji}>🔔</Text>
-          <Text style={styles.notifyTitle}>Quer ser avisado?</Text>
-          <Text style={styles.notifyBody}>
-            Quando o marketplace abrir, você será o primeiro a saber.
-          </Text>
-          <TouchableOpacity style={styles.notifyBtn}>
-            <Text style={styles.notifyBtnText}>Me avise quando abrir</Text>
-          </TouchableOpacity>
-        </View>
+        {isLoading ? (
+          <CategorySkeleton />
+        ) : error ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyEmoji}>😕</Text>
+            <Text style={styles.emptyText}>
+              Não foi possível carregar as categorias. Tente novamente mais
+              tarde.
+            </Text>
+          </View>
+        ) : categories.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyEmoji}>🏪</Text>
+            <Text style={styles.emptyText}>
+              Nenhum estabelecimento parceiro disponível ainda.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.grid}>
+            {categories.map((cat, index) => (
+              <CategoryCard
+                key={cat.key}
+                category={cat}
+                color={CARD_COLORS[index % CARD_COLORS.length]}
+                onPress={() =>
+                  navigation.navigate('EstablishmentList', {
+                    category: cat.key,
+                    categoryLabel: cat.label,
+                  })
+                }
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -123,31 +170,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 4,
   },
-  banner: {
-    marginHorizontal: 20,
-    backgroundColor: '#FFF7ED',
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    gap: 14,
-    alignItems: 'flex-start',
-    marginBottom: 24,
-    borderLeftWidth: 4,
-    borderLeftColor: FLAME,
-  },
-  bannerIcon: { fontSize: 24, marginTop: 2 },
-  bannerText: { flex: 1 },
-  bannerTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#C2410C',
-    marginBottom: 4,
-  },
-  bannerBody: {
-    fontSize: 13,
-    color: '#92400E',
-    lineHeight: 19,
-  },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
@@ -165,23 +187,6 @@ const styles = StyleSheet.create({
   catCard: {
     width: '50%',
     padding: 6,
-    position: 'relative',
-  },
-  comingSoonOverlay: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    zIndex: 10,
-    backgroundColor: NAVY,
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  comingSoonText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.3,
   },
   catIcon: {
     width: 56,
@@ -199,41 +204,33 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   catCount: { fontSize: 12, color: '#94A3B8' },
-  notifyCard: {
-    marginHorizontal: 20,
-    backgroundColor: NAVY,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-  },
-  notifyEmoji: { fontSize: 40, marginBottom: 12 },
-  notifyTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
+  skeletonIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#E9EDF3',
     marginBottom: 8,
   },
-  notifyBody: {
-    fontSize: 13,
-    color: '#8896A8',
+  skeletonLine: {
+    width: '70%',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E9EDF3',
+  },
+  emptyBox: {
+    marginHorizontal: 20,
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+  },
+  emptyEmoji: { fontSize: 44 },
+  emptyText: {
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 20,
-  },
-  notifyBtn: {
-    backgroundColor: FLAME,
-    borderRadius: 12,
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    shadowColor: FLAME,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  notifyBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
   },
 });

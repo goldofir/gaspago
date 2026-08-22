@@ -3,9 +3,10 @@ import type { ReactNode } from 'react'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { QrCode, Clock, Settings, Menu, X, ChevronRight, LogOut } from 'lucide-react'
+import { QrCode, Clock, Settings, Menu, X, ChevronRight, LogOut, Package } from 'lucide-react'
 
 const nav = [
+  { href: '/pos/catalog',  label: 'Catálogo',         Icon: Package },
   { href: '/pos',          label: 'Gerar Cobrança',  Icon: QrCode },
   { href: '/pos/history',  label: 'Histórico',        Icon: Clock },
   { href: '/pos/settings', label: 'Configurações',    Icon: Settings },
