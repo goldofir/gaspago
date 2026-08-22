@@ -135,7 +135,12 @@ export async function distributorsAdminRoutes(app: FastifyInstance) {
           address: data.address,
           city: data.city,
           state: data.state.toUpperCase(),
-          cashbackPercent: data.cashbackPercent,
+          // Zod validates this as a whole percent (0-20, e.g. "20" = 20%) —
+          // every other consumer of Distributor.cashbackPercent (commission math,
+          // the public creation route, establishment.routes.ts) treats it as a
+          // 0-1 fraction. Convert here so the stored value is always the fraction,
+          // regardless of which route created the record.
+          cashbackPercent: (data.cashbackPercent ?? 0) / 100,
           credenciadorId: (request as any).user?.id ?? 'system',
           isActive: true,
           rating: 0,
@@ -202,6 +207,8 @@ export async function distributorsAdminRoutes(app: FastifyInstance) {
 
       const updatePayload: Record<string, unknown> = { ...data };
       if (data.state) updatePayload.state = data.state.toUpperCase();
+      // Same whole-percent -> fraction conversion as the create route above.
+      if (data.cashbackPercent !== undefined) updatePayload.cashbackPercent = data.cashbackPercent / 100;
 
       const updated = await prisma.distributor.update({
         where: { id },
