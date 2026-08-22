@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Minhas Comissões',
-  description: 'Histórico e detalhes de comissões do credenciador no Gás Pago.',
-  robots: { index: false, follow: false },
-}
-
 import { useState, useEffect } from 'react'
 import { portalFetch } from '../../_components/portalFetch'
 

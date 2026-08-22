@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Catálogo POS',
-  description: 'Catálogo de produtos disponíveis no ponto de venda Gás Pago.',
-  robots: { index: false, follow: false },
-}
-
 import { useState, useEffect } from 'react'
 import { Package, Trash2, Eye, EyeOff, ImageOff } from 'lucide-react'
 import { portalFetch } from '../../_components/portalFetch'

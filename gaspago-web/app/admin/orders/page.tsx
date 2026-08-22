@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Pedidos',
-  description: 'Acompanhamento e gestão de pedidos de gás da plataforma.',
-  robots: { index: false, follow: false },
-}
-
 
 import { useState, useEffect, useMemo } from 'react'
 import { adminFetch } from '../../_components/adminFetch'

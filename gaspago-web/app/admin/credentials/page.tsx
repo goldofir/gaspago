@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Credenciais',
-  description: 'Configuração de credenciais e integrações da plataforma Gás Pago.',
-  robots: { index: false, follow: false },
-}
-
 import { useState, useEffect } from 'react'
 import { Check, AlertCircle, Eye, EyeOff, Save, RefreshCw, Lock, FlaskConical, Rocket, Pencil, X } from 'lucide-react'
 import { adminFetch } from '../../_components/adminFetch'

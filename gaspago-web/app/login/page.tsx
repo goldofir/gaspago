@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Login',
-  description: 'Acesse sua conta no Gás Pago.',
-  robots: { index: false, follow: false },
-}
-
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'

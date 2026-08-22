@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Storage',
-  description: 'Gerenciamento de arquivos e mídias armazenadas na plataforma.',
-  robots: { index: false, follow: false },
-}
-
 import { useState, useEffect } from 'react'
 import { CheckCircle2, XCircle, RefreshCw, FileImage, Lock, Globe, Trash2, Layers } from 'lucide-react'
 import Link from 'next/link'

@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Receita',
-  description: 'Relatórios de receita e resultados financeiros da plataforma Gás Pago.',
-  robots: { index: false, follow: false },
-}
-
 import { useState, useEffect } from 'react'
 import { TrendingUp, Coins, RefreshCw, ExternalLink, Inbox } from 'lucide-react'
 import { adminFetch } from '../../_components/adminFetch'

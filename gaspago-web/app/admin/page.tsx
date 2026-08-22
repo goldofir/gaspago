@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Dashboard Admin · Gás Pago',
-  description: 'Painel administrativo do Gás Pago. Gerencie integrações, pedidos, distribuidoras, afiliados e receita da plataforma.',
-  robots: { index: false, follow: false },
-}
-
 import { useState, useEffect } from 'react'
 import { AlertTriangle, CheckCircle2, Coins, ArrowRight } from 'lucide-react'
 import Link from 'next/link'

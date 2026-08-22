@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Dashboard Credenciador',
-  description: 'Painel do credenciador no Gás Pago. Acompanhe distribuidoras, estabelecimentos e comissões.',
-  robots: { index: false, follow: false },
-}
-
 import { useState, useEffect } from 'react'
 import { Truck, Store, TrendingUp, Coins } from 'lucide-react'
 import { portalFetch } from '../_components/portalFetch'

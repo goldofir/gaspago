@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Meus Produtos',
-  description: 'Catálogo de produtos e preços da sua distribuidora no Gás Pago.',
-  robots: { index: false, follow: false },
-}
-
 import { useState, useEffect } from 'react'
 import { portalFetch } from '../../_components/portalFetch'
 

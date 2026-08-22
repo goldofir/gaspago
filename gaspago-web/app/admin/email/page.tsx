@@ -1,12 +1,4 @@
 'use client'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'E-mail',
-  description: 'Configuração e envio de e-mails transacionais da plataforma Gás Pago.',
-  robots: { index: false, follow: false },
-}
-
 import { useState } from 'react'
 import { Send, CheckCircle2, XCircle, ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
