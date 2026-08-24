@@ -14,9 +14,13 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { getMe, getPlans, apiClient, Plan } from '@/api/client';
 import { useAuthStore } from '@/store/auth.store';
+import type { MainStackParamList } from '@/navigation';
+
 
 const FLAME = '#FF6524';
 const NAVY = '#0A1628';
@@ -69,7 +73,9 @@ interface SubscriptionInfo {
 
 export function ProfileScreen() {
   const { user, logout } = useAuthStore();
+  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const [copied, setCopied] = useState(false);
+
 
   // Subscription state
   const [subInfo, setSubInfo] = useState<SubscriptionInfo | null>(null);
@@ -391,6 +397,12 @@ export function ProfileScreen() {
 
         {/* ── Actions ── */}
         <View style={styles.actionsCard}>
+          <TouchableOpacity style={styles.actionRow} onPress={() => (navigation as any).navigate('Kyc')}>
+            <Text style={styles.actionIcon}>🛡️</Text>
+            <Text style={styles.actionLabel}>Verificação de Identidade (KYC)</Text>
+            <Text style={styles.actionChevron}>›</Text>
+          </TouchableOpacity>
+          <View style={styles.divider} />
           <TouchableOpacity style={styles.actionRow} onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/privacidade`)}>
             <Text style={styles.actionIcon}>🔒</Text>
             <Text style={styles.actionLabel}>Privacidade e segurança</Text>
@@ -409,6 +421,7 @@ export function ProfileScreen() {
             <Text style={styles.actionChevron}>›</Text>
           </TouchableOpacity>
         </View>
+
 
         {/* ── Logout ── */}
         <TouchableOpacity

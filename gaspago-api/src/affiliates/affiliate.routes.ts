@@ -1,6 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../shared/prisma'
 import { requireAuth, requireRole } from '../shared/auth.middleware'
+import { KycService } from '../kyc/kyc.service'
+
 
 // These are consumer self-service endpoints (FGOL balance, commission ledger,
 // referral network) but none of them checked that the caller actually owns
@@ -142,6 +144,43 @@ export async function affiliateRoutes(app: FastifyInstance) {
     return { summary, items }
   })
 
+  // POST /affiliates/withdraw — PIX withdrawal request (HARD ENFORCEMENT: requires KYC Level 2 Verified)
+  app.post('/withdraw', { preHandler: requireAuth }, async (req, reply) => {
+    const userId = (req as any).user.id as string
+    const { amount, pixKey } = req.body as { amount: number; pixKey?: string }
+
+    if (!amount || amount <= 0) {
+      return reply.status(400).send({ error: 'Valor de saque inválido.' })
+    }
+
+    // Trava de KYC Nível Premium: exige kycVerified === true
+    await KycService.assertWithdrawalAllowed(userId)
+
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
+    if (Number(user.fgolBalance) < amount) {
+      return reply.status(400).send({ error: 'Saldo insuficiente para saque.' })
+    }
+
+    // Create withdrawal ledger entry & deduct balance atomically
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: { fgolBalance: { decrement: amount } },
+      }),
+      prisma.commissionLedger.create({
+        data: {
+          recipientId: userId,
+          amount: -amount,
+          currency: 'FGOL',
+          status: 'RELEASED',
+          role: 'withdrawal',
+        },
+      }),
+    ])
+
+    return reply.send({ ok: true, message: 'Solicitação de saque enviada com sucesso!' })
+  })
+
   // GET /affiliates/:id/network — matrix tree (SuperAdmin only)
   app.get('/:id/network', { preHandler: requireRole('SUPERADMIN', 'ADMIN') }, async (req) => {
     const { id } = req.params as { id: string }
@@ -154,3 +193,4 @@ export async function affiliateRoutes(app: FastifyInstance) {
     return pos
   })
 }
+

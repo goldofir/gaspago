@@ -17,6 +17,8 @@ import { EstablishmentDetailScreen } from '@/screens/marketplace/EstablishmentDe
 import { ProfileScreen } from '@/screens/profile/ProfileScreen';
 import { PosScannerScreen } from '@/screens/pos/PosScannerScreen';
 import { MatrixNetworkScreen } from '@/screens/profile/MatrixNetworkScreen';
+import { KycScreen } from '@/screens/profile/KycScreen';
+
 
 // ─── Param lists ─────────────────────────────────────────────────────────────
 
@@ -45,9 +47,11 @@ export type MainStackParamList = {
   PosScanner: undefined;
   MatrixNetwork: undefined;
   FgolStatement: undefined;
+  Kyc: undefined;
   EstablishmentList: { category: string; categoryLabel: string };
   EstablishmentDetail: { establishmentId: string };
 };
+
 
 // ─── Auth Navigator ───────────────────────────────────────────────────────────
 
@@ -149,10 +153,16 @@ export function MainNavigator() {
         options={{ presentation: 'card' }}
       />
       <MainStack.Screen
+        name="Kyc"
+        component={KycScreen}
+        options={{ presentation: 'card' }}
+      />
+      <MainStack.Screen
         name="EstablishmentList"
         component={EstablishmentListScreen}
         options={{ presentation: 'card' }}
       />
+
       <MainStack.Screen
         name="EstablishmentDetail"
         component={EstablishmentDetailScreen}

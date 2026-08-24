@@ -20,7 +20,8 @@ import { establishmentRoutes } from './establishments/establishment.routes'
 import { marketplaceRoutes } from './marketplace/marketplace.routes'
 import { catalogRoutes } from './marketplace/catalog.routes'
 import { partnerLeadRoutes } from './leads/partner-lead.routes'
-import { publicConfigRoutes } from './shared/public-config.routes'
+import { kycRoutes } from './kyc/kyc.routes'
+import { kycAdminRoutes } from './admin/kyc.admin.routes'
 import { startSchedulers } from './shared/scheduler'
 
 async function bootstrap() {
@@ -44,6 +45,8 @@ async function bootstrap() {
   app.register(orderRoutes, { prefix: '/orders' })
   app.register(distributorRoutes, { prefix: '/distributors' })
   app.register(affiliateRoutes, { prefix: '/affiliates' })
+  app.register(kycRoutes, { prefix: '/kyc' })
+  app.register(kycAdminRoutes, { prefix: '/admin/kyc' })
   app.register(paymentRoutes, { prefix: '/payments' })
   app.register(posRoutes, { prefix: '/pos' })
   app.register(catalogRoutes, { prefix: '/pos' })
@@ -60,6 +63,7 @@ async function bootstrap() {
   app.register(subscriptionRoutes, { prefix: '/subscriptions' })
   app.register(partnerLeadRoutes, { prefix: '/partner-leads' })
   app.register(publicConfigRoutes)
+
 
   app.setErrorHandler((err, _req, reply) => {
     app.log.error(err)
