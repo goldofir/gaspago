@@ -1,6 +1,7 @@
 import { prisma } from '../shared/prisma'
 import { uploadImage, getPrivateUrl } from '../shared/storage.service'
 import { NotificationService } from '../notifications/notification.service'
+import { AiKycAgentService } from './ai-kyc-agent.service'
 
 export interface SubmitKycInput {
   userId: string
@@ -57,9 +58,18 @@ export const KycService = {
     const selfieBuffer = Buffer.from(input.selfieImageBase64.replace(/^data:.*;base64,/, ''), 'base64')
     const selfieUpload = await uploadImage(selfieBuffer, { folder: 'kyc', isPrivate: true })
 
-    // Simulated automated OCR & AI Liveness check (0.92+ passes auto-score)
-    const ocrConfidence = 0.96
-    const livenessScore = 0.98
+    // Avaliação do Agente de Inteligência Artificial de Compliance
+    const aiEvaluation = await AiKycAgentService.evaluateSubmission({
+      cpf: input.cpf,
+      fullName: input.fullName,
+      documentType: input.documentType,
+      documentNumber: input.documentNumber,
+      frontImageKey: frontUpload.key,
+      selfieImageKey: selfieUpload.key,
+    })
+
+    const initialStatus = aiEvaluation.autoDecision === 'APPROVE' ? 'APPROVED' : aiEvaluation.autoDecision === 'REJECT' ? 'REJECTED' : 'PENDING_REVIEW'
+    const isAutoApproved = initialStatus === 'APPROVED'
 
     const submission = await prisma.kycSubmission.upsert({
       where: { userId: input.userId },
@@ -73,18 +83,32 @@ export const KycService = {
         frontImageKey: frontUpload.key,
         backImageKey: backUploadKey,
         selfieImageKey: selfieUpload.key,
-        status: 'PENDING_REVIEW',
-        ocrConfidence,
-        livenessScore,
-        pepCheckPassed: true,
-        sanctionsPassed: true,
+        status: initialStatus,
+        ocrConfidence: aiEvaluation.ocrConfidence,
+        livenessScore: aiEvaluation.livenessScore,
+        pepCheckPassed: aiEvaluation.pepCheckPassed,
+        sanctionsPassed: aiEvaluation.sanctionsPassed,
+        rejectionReason: initialStatus === 'REJECTED' ? aiEvaluation.reason : null,
+        reviewedAt: isAutoApproved ? new Date() : null,
+        reviewedById: isAutoApproved ? 'AI_COMPLIANCE_AGENT' : null,
         auditLogs: {
-          create: {
-            actorId: input.userId,
-            action: 'SUBMITTED',
-            notes: 'Documentos e prova de vida enviados pelo aplicativo.',
-            ipAddress: input.ipAddress,
-          },
+          create: [
+            {
+              actorId: input.userId,
+              action: 'SUBMITTED',
+              notes: 'Documentos e prova de vida enviados pelo aplicativo.',
+              ipAddress: input.ipAddress,
+            },
+            ...(isAutoApproved
+              ? [
+                  {
+                    actorId: 'AI_COMPLIANCE_AGENT',
+                    action: 'APPROVED',
+                    notes: `Aprovado automaticamente pelo Agente de IA (${aiEvaluation.reason})`,
+                  },
+                ]
+              : []),
+          ],
         },
       },
       update: {
@@ -96,21 +120,47 @@ export const KycService = {
         frontImageKey: frontUpload.key,
         backImageKey: backUploadKey,
         selfieImageKey: selfieUpload.key,
-        status: 'PENDING_REVIEW',
-        rejectionReason: null,
+        status: initialStatus,
+        ocrConfidence: aiEvaluation.ocrConfidence,
+        livenessScore: aiEvaluation.livenessScore,
+        rejectionReason: initialStatus === 'REJECTED' ? aiEvaluation.reason : null,
         submittedAt: new Date(),
-        reviewedAt: null,
-        reviewedById: null,
+        reviewedAt: isAutoApproved ? new Date() : null,
+        reviewedById: isAutoApproved ? 'AI_COMPLIANCE_AGENT' : null,
         auditLogs: {
-          create: {
-            actorId: input.userId,
-            action: 'SUBMITTED',
-            notes: 'Re-envio de documentos de identidade.',
-            ipAddress: input.ipAddress,
-          },
+          create: [
+            {
+              actorId: input.userId,
+              action: 'SUBMITTED',
+              notes: 'Re-envio de documentos de identidade.',
+              ipAddress: input.ipAddress,
+            },
+            ...(isAutoApproved
+              ? [
+                  {
+                    actorId: 'AI_COMPLIANCE_AGENT',
+                    action: 'APPROVED',
+                    notes: `Aprovado automaticamente pelo Agente de IA (${aiEvaluation.reason})`,
+                  },
+                ]
+              : []),
+          ],
         },
       },
     })
+
+    // Se aprovado automaticamente pela IA, libera a conta e altera o nível de KYC na hora!
+    if (isAutoApproved) {
+      await prisma.user.update({
+        where: { id: input.userId },
+        data: { kycVerified: true, kycLevel: 'LEVEL_2_VERIFIED', cpf: input.cpf },
+      })
+      NotificationService.sendToUser(
+        input.userId,
+        'KYC Aprovado pela IA! ⭐',
+        'Sua identidade foi verificada e aprovada automaticamente pelo nosso Agente de IA. Saques PIX liberados!'
+      ).catch(() => {})
+    }
 
     // Also update User profile CPF if not set
     if (!user.cpf) {
@@ -119,6 +169,7 @@ export const KycService = {
 
     return submission
   },
+
 
   async getKycStatus(userId: string) {
     const user = await prisma.user.findUniqueOrThrow({
