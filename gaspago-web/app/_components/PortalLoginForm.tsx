@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import GoogleSignInButton from './GoogleSignInButton'
+import Web3AuthConnect, { Web3AuthResult } from './Web3AuthConnect'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 
@@ -35,23 +36,33 @@ export default function PortalLoginForm({ portal }: { portal?: PortalKind }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  function routeByRole(role: string, token: string): boolean {
-    if (portal) {
-      const expectedRole = ({ distributor: 'DISTRIBUTOR', credenciador: 'CREDENCIADOR', pos: 'ESTABLISHMENT' } as const)[portal]
-      if (role !== expectedRole) {
-        setError('Esta conta não tem acesso a este painel')
-        return false
-      }
-      localStorage.setItem(meta.tokenKey, token)
-      router.push(meta.redirect)
-      return true
-    }
-    const target = ROLE_META[role]
+  function routeByRole(role: string, token: string, portalStatus?: string): boolean {
+    const target = portal
+      ? (() => {
+          const expectedRole = ({ distributor: 'DISTRIBUTOR', credenciador: 'CREDENCIADOR', pos: 'ESTABLISHMENT' } as const)[portal]
+          return role === expectedRole ? meta : null
+        })()
+      : ROLE_META[role]
+
     if (!target) {
-      setError('Esta conta não tem acesso a nenhum painel.')
+      setError(portal ? 'Esta conta não tem acesso a este painel' : 'Esta conta não tem acesso a nenhum painel.')
       return false
     }
+
     localStorage.setItem(target.tokenKey, token)
+
+    // Self-service signups (Web3Auth) start PENDING_APPROVAL — no
+    // Distributor/Establishment exists yet, so the real portal pages would
+    // just error fetching /me. Send them to the waiting screen instead.
+    if (portalStatus === 'PENDING_APPROVAL') {
+      router.push('/parceiro/pendente')
+      return true
+    }
+    if (portalStatus === 'REJECTED') {
+      setError('Seu cadastro foi recusado. Entre em contato com o suporte para mais informações.')
+      return false
+    }
+
     router.push(target.redirect)
     return true
   }
@@ -62,6 +73,28 @@ export default function PortalLoginForm({ portal }: { portal?: PortalKind }) {
 
   function handleGoogleError(message: string) {
     setError(message)
+  }
+
+  async function handleWeb3AuthSuccess(result: Web3AuthResult) {
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch(`${API}/auth/web3auth-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: result.idToken, walletAddress: result.walletAddress }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(data?.error ?? 'Não foi possível entrar.')
+        return
+      }
+      routeByRole(data.role, data.token, data.portalStatus)
+    } catch {
+      setError('Erro ao conectar com o servidor')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -201,6 +234,10 @@ export default function PortalLoginForm({ portal }: { portal?: PortalKind }) {
             </div>
 
             <GoogleSignInButton portal={portal ?? 'business'} onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+
+            <div style={{ marginTop: 10 }}>
+              <Web3AuthConnect label="Entrar com carteira (Google/e-mail)" onSuccess={handleWeb3AuthSuccess} onError={setError} />
+            </div>
           </div>
 
           <p className="plf-footer">Gás Pago V3 · Acesso restrito a contas autorizadas</p>

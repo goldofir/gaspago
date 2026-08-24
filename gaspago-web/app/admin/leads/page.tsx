@@ -20,6 +20,9 @@ interface Lead {
   status: 'PENDING' | 'CONTACTED' | 'APPROVED' | 'REJECTED'
   notes: string | null
   createdAt: string
+  // Set only for self-service signups (Web3Auth) — a real, wallet-authenticated
+  // account already exists and is waiting on the fields below to go live.
+  userId: string | null
 }
 
 const STATUS_META: Record<Lead['status'], { label: string; bg: string; color: string }> = {
@@ -41,6 +44,13 @@ export default function AdminLeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [typeFilter, setTypeFilter] = useState<string>('')
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Self-service signups need business terms (address/cep/cashback) SuperAdmin
+  // sets during approval — this is that inline mini-form's open+field state.
+  const [approvingId, setApprovingId] = useState<string | null>(null)
+  const [approvalCep, setApprovalCep] = useState('')
+  const [approvalAddress, setApprovalAddress] = useState('')
+  const [approvalCashback, setApprovalCashback] = useState('10')
+  const [approvalError, setApprovalError] = useState('')
 
   async function load() {
     setLoading(true)
@@ -63,21 +73,47 @@ export default function AdminLeadsPage() {
 
   useEffect(() => { load() }, [statusFilter, typeFilter])
 
-  async function updateStatus(id: string, status: Lead['status']) {
+  async function updateStatus(id: string, status: Lead['status'], extra?: Record<string, unknown>) {
     setBusyId(id)
     try {
       const res = await adminFetch(`${API}/admin/leads/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, ...extra }),
       })
-      if (res.ok) {
-        setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l))
-        setPendingCount(prev => status !== 'PENDING' ? Math.max(0, prev - 1) : prev)
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setApprovalError(data?.error ?? 'Não foi possível aprovar.')
+        return false
       }
+      setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l))
+      setPendingCount(prev => status !== 'PENDING' ? Math.max(0, prev - 1) : prev)
+      return true
     } finally {
       setBusyId(null)
     }
+  }
+
+  function startApproval(lead: Lead) {
+    setApprovalError('')
+    setApprovalCep('')
+    setApprovalAddress('')
+    setApprovalCashback('10')
+    setApprovingId(lead.id)
+  }
+
+  async function confirmApproval(id: string) {
+    if (!approvalCep.trim() || !approvalAddress.trim()) {
+      setApprovalError('Informe CEP e endereço.')
+      return
+    }
+    const cashback = Number(approvalCashback)
+    if (!Number.isFinite(cashback) || cashback < 0 || cashback > 20) {
+      setApprovalError('Cashback deve ser um número entre 0 e 20.')
+      return
+    }
+    const ok = await updateStatus(id, 'APPROVED', { cep: approvalCep, address: approvalAddress, cashbackPercent: cashback })
+    if (ok) setApprovingId(null)
   }
 
   return (
@@ -182,11 +218,17 @@ export default function AdminLeadsPage() {
                     <span style={{ fontSize: 11, color: 'var(--muted)' }}>{formatDate(lead.createdAt)}</span>
                   </div>
                 </div>
+                {lead.userId && lead.status !== 'APPROVED' && (
+                  <div style={{ fontSize: 11.5, color: 'var(--flame)', fontWeight: 600, marginTop: 10 }}>
+                    🔐 Cadastro via carteira — conta já criada, aguardando os dados abaixo pra ativar
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                   {(['CONTACTED', 'APPROVED', 'REJECTED'] as const).map(s => (
                     <button
                       key={s}
-                      onClick={() => updateStatus(lead.id, s)}
+                      onClick={() => s === 'APPROVED' && lead.userId ? startApproval(lead) : updateStatus(lead.id, s)}
                       disabled={busyId === lead.id || lead.status === s}
                       style={{
                         padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: lead.status === s ? 'default' : 'pointer',
@@ -202,6 +244,31 @@ export default function AdminLeadsPage() {
                     </button>
                   ))}
                 </div>
+
+                {approvingId === lead.id && (
+                  <div style={{ marginTop: 12, padding: 14, background: 'var(--ground)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>Dados pra ativar a conta</div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                      <input placeholder="CEP" value={approvalCep} onChange={e => setApprovalCep(e.target.value)}
+                        style={{ flex: '1 1 120px', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }} />
+                      <input placeholder="Endereço" value={approvalAddress} onChange={e => setApprovalAddress(e.target.value)}
+                        style={{ flex: '2 1 200px', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }} />
+                      <input placeholder="Cashback %" type="number" min={0} max={20} value={approvalCashback} onChange={e => setApprovalCashback(e.target.value)}
+                        style={{ flex: '1 1 100px', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }} />
+                    </div>
+                    {approvalError && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{approvalError}</div>}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => confirmApproval(lead.id)} disabled={busyId === lead.id}
+                        style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: 'none', background: 'var(--flame)', color: '#fff', cursor: 'pointer' }}>
+                        {busyId === lead.id ? 'Ativando…' : 'Ativar conta'}
+                      </button>
+                      <button onClick={() => setApprovingId(null)} disabled={busyId === lead.id}
+                        style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--sub)', cursor: 'pointer' }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

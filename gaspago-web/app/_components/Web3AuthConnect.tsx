@@ -20,6 +20,9 @@ let web3AuthPromise: Promise<any> | null = null
 async function getWeb3Auth() {
   if (web3AuthPromise) return web3AuthPromise
   web3AuthPromise = (async () => {
+    // @web3auth/modal's real types are shimmed to `any` in web3auth-shim.d.ts —
+    // see that file for why (a TS type-instantiation crash in viem/ox, unrelated
+    // to anything this component actually uses).
     const [{ Web3Auth, WALLET_CONNECTORS, WEB3AUTH_NETWORK }, cfg] = await Promise.all([
       import('@web3auth/modal'),
       fetch(`${API}/public-config`).then(r => r.json()),
