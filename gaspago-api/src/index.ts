@@ -22,7 +22,9 @@ import { catalogRoutes } from './marketplace/catalog.routes'
 import { partnerLeadRoutes } from './leads/partner-lead.routes'
 import { kycRoutes } from './kyc/kyc.routes'
 import { kycAdminRoutes } from './admin/kyc.admin.routes'
+import { publicConfigRoutes } from './shared/public-config.routes'
 import { startSchedulers } from './shared/scheduler'
+
 
 async function bootstrap() {
   await SystemConfigService.loadAll()
