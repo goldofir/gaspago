@@ -1,6 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { SystemConfigService } from './system-config.service'
 
+import { CnpjAuditorService } from './cnpj-auditor.service'
+
 // Non-secret values the public site needs at runtime but that live in the
 // SuperAdmin-managed DB config, not a build-time env var — same reasoning as
 // GET /auth/google-client-id.
@@ -12,4 +14,11 @@ export async function publicConfigRoutes(app: FastifyInstance) {
       web3authNetwork: SystemConfigService.get('WEB3AUTH_NETWORK') || 'sapphire_devnet',
     }
   })
+
+  // GET /public-cnpj/:cnpj — Rota pública para busca e auto-preenchimento de dados de CNPJ no cadastro
+  app.get('/public-cnpj/:cnpj', async (req) => {
+    const { cnpj } = req.params as { cnpj: string }
+    return CnpjAuditorService.auditCnpj(cnpj)
+  })
 }
+

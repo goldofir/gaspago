@@ -39,6 +39,8 @@ function ParceiroForm() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  const [cnpjLoading, setCnpjLoading] = useState(false)
+
 
   // Runs right before opening the Web3Auth modal — no point making someone
   // connect a wallet only to then reject the form for a missing CNPJ.
@@ -158,14 +160,44 @@ function ParceiroForm() {
 
                 <div className="pcr-row">
                   <div className="pcr-group">
-                    <label className="pcr-label">CNPJ</label>
-                    <input className="pcr-input" value={cnpj} onChange={e => setCnpj(e.target.value)} required placeholder="00.000.000/0000-00" />
+                    <label className="pcr-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>CNPJ</span>
+                      {cnpjLoading && <span style={{ fontSize: 11, color: '#FF6524', fontWeight: 600 }}>Buscando dados...</span>}
+                    </label>
+                    <input
+                      className="pcr-input"
+                      value={cnpj}
+                      onChange={async (e) => {
+                        const val = e.target.value
+                        setCnpj(val)
+                        const clean = val.replace(/\D/g, '')
+                        if (clean.length === 14 && !cnpjLoading) {
+                          setCnpjLoading(true)
+                          try {
+                            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'}/public-cnpj/${clean}`)
+                            if (res.ok) {
+                              const data = await res.json()
+                              if (data.razaoSocial && !name) setName(data.razaoSocial)
+                              if (data.endereco?.municipio) setCity(data.endereco.municipio)
+                              if (data.endereco?.uf) setState(data.endereco.uf)
+                            }
+                          } catch (err) {
+                            console.error(err)
+                          } finally {
+                            setCnpjLoading(false)
+                          }
+                        }
+                      }}
+                      required
+                      placeholder="00.000.000/0000-00"
+                    />
                   </div>
                   <div className="pcr-group">
                     <label className="pcr-label">Telefone</label>
                     <input className="pcr-input" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="(11) 99999-9999" />
                   </div>
                 </div>
+
 
                 <div className="pcr-group">
                   <label className="pcr-label">E-mail</label>
