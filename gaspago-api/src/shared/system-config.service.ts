@@ -114,6 +114,7 @@ export const KNOWN_KEYS: Record<string, { label: string; group: string; sensitiv
   CONEXBOT_API_KEY:        { label: 'Conexbot API Key',        group: 'conexbot', sensitive: true,  hint: 'Formato cxk_... — gerada em app.conext.click → Developer → Nova Key' },
   CONEXBOT_PHONE_ID:       { label: 'Conexbot Phone ID',       group: 'conexbot', sensitive: false, hint: 'Phone ID do número conectado (ex.: 1273538359175913)' },
   CONEXBOT_WEBHOOK_SECRET: { label: 'Conexbot Webhook Secret', group: 'conexbot', sensitive: true,  hint: 'Segredo para validar assinatura dos eventos recebidos' },
+  WHATSAPP_ORDER_NUMBER:   { label: 'Número para pedidos via WhatsApp', group: 'conexbot', sensitive: false, hint: 'Formato internacional sem símbolos, ex.: 5511999998888 — usado nos botões "Pedir pelo WhatsApp" do site' },
 
   // Polygon / FGOL
   POLYGON_RPC_URL: { label: 'Polygon RPC URL', group: 'polygon', sensitive: false, hint: 'Ex.: https://polygon-rpc.com ou Alchemy/Infura' },

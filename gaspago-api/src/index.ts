@@ -20,6 +20,7 @@ import { establishmentRoutes } from './establishments/establishment.routes'
 import { marketplaceRoutes } from './marketplace/marketplace.routes'
 import { catalogRoutes } from './marketplace/catalog.routes'
 import { partnerLeadRoutes } from './leads/partner-lead.routes'
+import { publicConfigRoutes } from './shared/public-config.routes'
 import { startSchedulers } from './shared/scheduler'
 
 async function bootstrap() {
@@ -58,6 +59,7 @@ async function bootstrap() {
   app.register(notificationRoutes, { prefix: '/notifications' })
   app.register(subscriptionRoutes, { prefix: '/subscriptions' })
   app.register(partnerLeadRoutes, { prefix: '/partner-leads' })
+  app.register(publicConfigRoutes)
 
   app.setErrorHandler((err, _req, reply) => {
     app.log.error(err)

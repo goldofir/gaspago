@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
+
 /* ————— Canvas flame: blue gas core, orange brand tips ————— */
 function FlameCanvas() {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -108,6 +110,18 @@ function useReveal() {
 export default function Home() {
   useReveal()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [whatsappNumber, setWhatsappNumber] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch(`${API}/public-config`)
+      .then(r => r.json())
+      .then(d => setWhatsappNumber(d.whatsappOrderNumber ?? null))
+      .catch(() => setWhatsappNumber(null))
+  }, [])
+
+  const whatsappHref = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Olá! Quero fazer um pedido de gás pelo Gás Pago.')}`
+    : undefined
 
   return (
     <div className="site">
@@ -375,9 +389,15 @@ export default function Home() {
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
               Baixar o app
             </a>
-            <a className="btn-ghost" href="https://wa.me/" target="_blank" rel="noopener noreferrer">
-              Pedir pelo WhatsApp
-            </a>
+            {whatsappHref ? (
+              <a className="btn-ghost" href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                Pedir pelo WhatsApp
+              </a>
+            ) : (
+              <a className="btn-ghost" href="#baixar" aria-disabled="true" title="Pedidos pelo WhatsApp em breve — baixe o app">
+                Pedir pelo WhatsApp
+              </a>
+            )}
           </div>
         </div>
         <span className="hero-hint">role para descobrir</span>
@@ -569,7 +589,11 @@ export default function Home() {
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
               Baixar o app
             </a>
-            <a className="btn-ghost" href="https://wa.me/" target="_blank" rel="noopener noreferrer">Pedir pelo WhatsApp</a>
+            {whatsappHref ? (
+              <a className="btn-ghost" href={whatsappHref} target="_blank" rel="noopener noreferrer">Pedir pelo WhatsApp</a>
+            ) : (
+              <a className="btn-ghost" href="#baixar" aria-disabled="true" title="Pedidos pelo WhatsApp em breve — baixe o app">Pedir pelo WhatsApp</a>
+            )}
           </div>
         </div>
       </section>
