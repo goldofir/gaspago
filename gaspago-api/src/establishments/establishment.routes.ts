@@ -1,8 +1,9 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../shared/prisma'
-import { createSubAccount } from '../payments/asaas.client'
+import { createSubAccount, getSubAccountDocuments, uploadSubAccountDocument, getSubAccountStatus } from '../payments/asaas.client'
 import { requireRole } from '../shared/auth.middleware'
+
 
 const CreateEstablishmentSchema = z.object({
   name: z.string(),
@@ -62,9 +63,60 @@ export async function establishmentRoutes(app: FastifyInstance) {
     return reply.status(201).send(establishment)
   })
 
+  // GET /establishments/me — establishment profile
+  app.get('/me', { preHandler: requireRole('ESTABLISHMENT') }, async (req) => {
+    const estId = (req as any).user?.establishmentId
+    if (!estId) throw Object.assign(new Error('Conta não vinculada a um estabelecimento.'), { statusCode: 400 })
+    return prisma.establishment.findUniqueOrThrow({ where: { id: estId } })
+  })
+
+  // GET /establishments/me/asaas-documents — list documents required by Asaas for establishment
+  app.get('/me/asaas-documents', { preHandler: requireRole('ESTABLISHMENT') }, async (req, reply) => {
+    const estId = (req as any).user?.establishmentId
+    if (!estId) return reply.status(400).send({ error: 'Conta não vinculada a um estabelecimento.' })
+    const est = await prisma.establishment.findUniqueOrThrow({ where: { id: estId } })
+    if (!est.asaasSubAccountId) {
+      return reply.status(400).send({ error: 'Estabelecimento ainda não possui subconta Asaas vinculada.' })
+    }
+    const documents = await getSubAccountDocuments(est.asaasSubAccountId)
+    const status = await getSubAccountStatus(est.asaasSubAccountId)
+    return { documents, status }
+  })
+
+  // POST /establishments/me/asaas-documents/:documentId — upload document file to Asaas
+  app.post('/me/asaas-documents/:documentId', { preHandler: requireRole('ESTABLISHMENT') }, async (req, reply) => {
+    const estId = (req as any).user?.establishmentId
+    if (!estId) return reply.status(400).send({ error: 'Conta não vinculada a um estabelecimento.' })
+    const est = await prisma.establishment.findUniqueOrThrow({ where: { id: estId } })
+    const { documentId } = req.params as { documentId: string }
+    const { fileBase64, type, filename, mimeType } = req.body as {
+      fileBase64: string; type?: string; filename?: string; mimeType?: string
+    }
+
+    if (!est.asaasSubAccountId) {
+      return reply.status(400).send({ error: 'Estabelecimento ainda não possui subconta Asaas vinculada.' })
+    }
+    if (!fileBase64) {
+      return reply.status(400).send({ error: 'Arquivo do documento não informado.' })
+    }
+
+    const buffer = Buffer.from(fileBase64.replace(/^data:.*;base64,/, ''), 'base64')
+    const result = await uploadSubAccountDocument(
+      est.asaasSubAccountId,
+      documentId,
+      type ?? 'COMPANY_PROOF',
+      buffer,
+      filename ?? `${documentId}.pdf`,
+      mimeType ?? 'application/pdf',
+    )
+
+    return reply.send({ ok: true, result })
+  })
+
   // GET /establishments/:id
   app.get('/:id', async (req) => {
     const { id } = req.params as { id: string }
     return prisma.establishment.findUniqueOrThrow({ where: { id } })
   })
 }
+

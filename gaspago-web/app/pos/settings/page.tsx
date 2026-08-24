@@ -75,6 +75,9 @@ export default function PosSettingsPage() {
         )}
       </div>
 
+      {/* Asaas B2B Document Homologation */}
+      <AsaasDocumentSection tokenKey={TOKEN_KEY} endpointPrefix="/pos/me" />
+
       {/* Notifications */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginBottom: 24, boxShadow: 'var(--shadow-sm)' }}>
         <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 14 }}>Notificações</h2>
@@ -114,3 +117,150 @@ export default function PosSettingsPage() {
     </div>
   )
 }
+
+function AsaasDocumentSection({ tokenKey, endpointPrefix }: { tokenKey: string; endpointPrefix: string }) {
+  const [docs, setDocs] = useState<any[]>([])
+  const [status, setStatus] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [uploadingId, setUploadingId] = useState<string | null>(null)
+  const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+
+  function loadDocuments() {
+    setLoading(true)
+    portalFetch(tokenKey, `${API}${endpointPrefix}/asaas-documents`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.documents) setDocs(data.documents)
+        if (data.status) setStatus(data.status)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadDocuments()
+  }, [])
+
+  function handleFileChange(docId: string, docType: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 10 * 1024 * 1024) {
+      setMsg({ text: 'O arquivo deve ter no máximo 10MB.', type: 'error' })
+      return
+    }
+
+    setUploadingId(docId)
+    setMsg(null)
+
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const base64 = reader.result as string
+      try {
+        const res = await portalFetch(tokenKey, `${API}${endpointPrefix}/asaas-documents/${docId}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            fileBase64: base64,
+            type: docType,
+            filename: file.name,
+            mimeType: file.type,
+          }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setMsg({ text: `Documento "${file.name}" enviado com sucesso para análise no Asaas!`, type: 'success' })
+          loadDocuments()
+        } else {
+          setMsg({ text: data.error || 'Erro ao enviar documento.', type: 'error' })
+        }
+      } catch {
+        setMsg({ text: 'Erro de conexão ao enviar o documento.', type: 'error' })
+      } finally {
+        setUploadingId(null)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const isApproved = status?.generalApproval === 'APPROVED'
+
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginBottom: 24, boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>Homologação Asaas & Documentos B2B</h2>
+          <p style={{ fontSize: 12, color: 'var(--muted)' }}>Envie a documentação da empresa para liberar saques e recebimentos na produção.</p>
+        </div>
+        <div style={{
+          padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+          background: isApproved ? 'rgba(16,185,129,.12)' : 'rgba(245,158,11,.12)',
+          color: isApproved ? '#10B981' : '#F59E0B', border: `1px solid ${isApproved ? '#10B98133' : '#F59E0B33'}`
+        }}>
+          {isApproved ? '✓ Conta Homologada' : '⏳ Homologação Pendente'}
+        </div>
+      </div>
+
+      {msg && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: 12.5, fontWeight: 600,
+          background: msg.type === 'success' ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)',
+          color: msg.type === 'success' ? '#10B981' : '#EF4444',
+          border: `1px solid ${msg.type === 'success' ? '#10B98133' : '#EF444433'}`
+        }}>
+          {msg.text}
+        </div>
+      )}
+
+      {loading ? (
+        <p style={{ fontSize: 13, color: 'var(--muted)', padding: '16px 0' }}>Carregando lista de documentos…</p>
+      ) : (
+        <div style={{ display: 'grid', gap: 10 }}>
+          {docs.map(doc => {
+            const st = doc.status ?? 'NOT_SENT'
+            const isDone = st === 'APPROVED'
+            const isWait = st === 'AWAITING_APPROVAL'
+            const isErr = st === 'REJECTED'
+
+            const badgeBg = isDone ? 'rgba(16,185,129,.12)' : isWait ? 'rgba(59,130,246,.12)' : isErr ? 'rgba(239,68,68,.12)' : 'rgba(148,163,184,.12)'
+            const badgeColor = isDone ? '#10B981' : isWait ? '#3B82F6' : isErr ? '#EF4444' : '#64748B'
+            const badgeLabel = isDone ? 'Aprovado' : isWait ? 'Em Análise' : isErr ? 'Rejeitado' : 'Pendente'
+
+            return (
+              <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--ground)' }}>
+                <div style={{ flex: 1, marginRight: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{doc.title}</span>
+                    <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: badgeBg, color: badgeColor }}>
+                      {badgeLabel}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 11.5, color: 'var(--muted)' }}>{doc.description}</p>
+                  {doc.rejectionReason && (
+                    <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4, fontWeight: 600 }}>Motivo: {doc.rejectionReason}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{
+                    padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: uploadingId === doc.id ? 'wait' : 'pointer',
+                    background: 'var(--flame)', color: '#FFF', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: uploadingId === doc.id ? .7 : 1
+                  }}>
+                    {uploadingId === doc.id ? 'Enviando…' : isDone ? 'Reenviar' : 'Enviar Arquivo'}
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      disabled={uploadingId === doc.id}
+                      onChange={e => handleFileChange(doc.id, doc.type, e)}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+

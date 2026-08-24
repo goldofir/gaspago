@@ -3,7 +3,8 @@ import { randomUUID } from 'crypto'
 import { z } from 'zod'
 import { SignJWT, jwtVerify } from 'jose'
 import { prisma } from '../shared/prisma'
-import { createPixCharge, getPixQrCode, internalTransfer, asaasErrorMessage } from './asaas.client'
+import { createPixCharge, getPixQrCode, internalTransfer, asaasErrorMessage, getSubAccountDocuments, uploadSubAccountDocument, getSubAccountStatus } from './asaas.client'
+
 import { getOrCreateCustomerId } from './customer.service'
 import { finalizePosPayment } from './pos-payment.service'
 import { config } from '../config'
@@ -40,6 +41,46 @@ export async function posRoutes(app: FastifyInstance) {
   app.get('/me', { preHandler: requireEstablishment }, async (req) => {
     return getMeEstablishment((req as any).user?.establishmentId)
   })
+
+  // GET /pos/me/asaas-documents — list documents required by Asaas for establishment
+  app.get('/me/asaas-documents', { preHandler: requireEstablishment }, async (req, reply) => {
+    const est = await getMeEstablishment((req as any).user?.establishmentId)
+    if (!est.asaasSubAccountId) {
+      return reply.status(400).send({ error: 'Estabelecimento ainda não possui subconta Asaas vinculada.' })
+    }
+    const documents = await getSubAccountDocuments(est.asaasSubAccountId)
+    const status = await getSubAccountStatus(est.asaasSubAccountId)
+    return { documents, status }
+  })
+
+  // POST /pos/me/asaas-documents/:documentId — upload document file to Asaas
+  app.post('/me/asaas-documents/:documentId', { preHandler: requireEstablishment }, async (req, reply) => {
+    const est = await getMeEstablishment((req as any).user?.establishmentId)
+    const { documentId } = req.params as { documentId: string }
+    const { fileBase64, type, filename, mimeType } = req.body as {
+      fileBase64: string; type?: string; filename?: string; mimeType?: string
+    }
+
+    if (!est.asaasSubAccountId) {
+      return reply.status(400).send({ error: 'Estabelecimento ainda não possui subconta Asaas vinculada.' })
+    }
+    if (!fileBase64) {
+      return reply.status(400).send({ error: 'Arquivo do documento não informado.' })
+    }
+
+    const buffer = Buffer.from(fileBase64.replace(/^data:.*;base64,/, ''), 'base64')
+    const result = await uploadSubAccountDocument(
+      est.asaasSubAccountId,
+      documentId,
+      type ?? 'COMPANY_PROOF',
+      buffer,
+      filename ?? `${documentId}.pdf`,
+      mimeType ?? 'application/pdf',
+    )
+
+    return reply.send({ ok: true, result })
+  })
+
 
   // POST /pos/charge — POS web panel generates QR charge
   app.post('/charge', { preHandler: requireEstablishment }, async (req, reply) => {

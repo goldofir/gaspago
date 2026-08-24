@@ -1,8 +1,9 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../shared/prisma'
-import { createSubAccount } from '../payments/asaas.client'
+import { createSubAccount, getSubAccountDocuments, uploadSubAccountDocument, getSubAccountStatus } from '../payments/asaas.client'
 import { requireRole } from '../shared/auth.middleware'
+
 import { distributeCommissions } from '../commissions/commission.service'
 import { NotificationService } from '../notifications/notification.service'
 
@@ -49,6 +50,48 @@ export async function distributorRoutes(app: FastifyInstance) {
     const distId = (req as any).user?.distributorId
     return getMeDistributor(distId)
   })
+
+  // GET /distributors/me/asaas-documents — list documents required by Asaas
+  app.get('/me/asaas-documents', { preHandler: requireDistributor }, async (req, reply) => {
+    const distId = (req as any).user?.distributorId
+    const dist = await getMeDistributor(distId)
+    if (!dist.asaasSubAccountId) {
+      return reply.status(400).send({ error: 'Distribuidora ainda não possui subconta Asaas vinculada.' })
+    }
+    const documents = await getSubAccountDocuments(dist.asaasSubAccountId)
+    const status = await getSubAccountStatus(dist.asaasSubAccountId)
+    return { documents, status }
+  })
+
+  // POST /distributors/me/asaas-documents/:documentId — upload document file (base64) to Asaas
+  app.post('/me/asaas-documents/:documentId', { preHandler: requireDistributor }, async (req, reply) => {
+    const distId = (req as any).user?.distributorId
+    const dist = await getMeDistributor(distId)
+    const { documentId } = req.params as { documentId: string }
+    const { fileBase64, type, filename, mimeType } = req.body as {
+      fileBase64: string; type?: string; filename?: string; mimeType?: string
+    }
+
+    if (!dist.asaasSubAccountId) {
+      return reply.status(400).send({ error: 'Distribuidora ainda não possui subconta Asaas vinculada.' })
+    }
+    if (!fileBase64) {
+      return reply.status(400).send({ error: 'Arquivo do documento não informado.' })
+    }
+
+    const buffer = Buffer.from(fileBase64.replace(/^data:.*;base64,/, ''), 'base64')
+    const result = await uploadSubAccountDocument(
+      dist.asaasSubAccountId,
+      documentId,
+      type ?? 'COMPANY_PROOF',
+      buffer,
+      filename ?? `${documentId}.pdf`,
+      mimeType ?? 'application/pdf',
+    )
+
+    return reply.send({ ok: true, result })
+  })
+
 
   // GET /distributors/me/stats — metrics for distributor dashboard
   app.get('/me/stats', { preHandler: requireDistributor }, async (req) => {
