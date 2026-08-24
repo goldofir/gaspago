@@ -148,7 +148,7 @@ export async function marketplaceRoutes(app: FastifyInstance) {
     }
     const pixQr = charge.pixQrCode ?? (await getPixQrCode(charge.id).catch(() => undefined))
 
-    await prisma.posPayment.update({ where: { id: posPayment.id }, data: { asaasChargeId: charge.id } })
+    await prisma.posPayment.update({ where: { id: posPayment.id }, data: { asaasChargeId: charge.id, invoiceUrl: charge.invoiceUrl } })
     if (body.fgolToUse > 0) {
       await prisma.user.update({ where: { id: customerId }, data: { fgolBalance: { decrement: body.fgolToUse } } })
     }

@@ -21,6 +21,8 @@ type Order = {
   deliveryPostalCode: string
   total: string
   status: string
+  paymentStatus: string
+  invoiceUrl: string | null
   createdAt: string
   items: { product: { name: string }; quantity: number }[]
 }
@@ -128,6 +130,12 @@ export default function DistributorOrdersPage() {
                             style={{ padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600, background: '#10B98118', color: '#10B981', border: '1px solid #10B98130', cursor: 'pointer' }}>
                             ✓ Entregue
                           </button>
+                        )}
+                        {o.invoiceUrl && (
+                          <a href={o.invoiceUrl} target="_blank" rel="noopener noreferrer"
+                            style={{ padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600, background: 'var(--ground)', color: 'var(--sub)', border: '1px solid var(--border)', textDecoration: 'none' }}>
+                            🧾 Fatura
+                          </a>
                         )}
                       </div>
                     </td>

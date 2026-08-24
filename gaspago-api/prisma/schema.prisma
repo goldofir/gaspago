@@ -329,6 +329,7 @@ model Order {
   paymentMethod PaymentMethod
   paymentStatus PaymentStatus @default(PENDING)
   asaasChargeId String? // Asaas PIX charge reference
+  invoiceUrl    String? // Asaas-hosted invoice page (real PDF/payment link) — surfaced as "Fatura"
 
   // FGOL used as partial payment
   fgolUsed         Decimal @default(0) @db.Decimal(20, 8)
@@ -382,6 +383,7 @@ model PosPayment {
 
   status        PosPaymentStatus @default(AWAITING_SCAN)
   asaasChargeId String? // PIX charge for pixAmount from consumer
+  invoiceUrl    String? // Asaas-hosted invoice page (real PDF/payment link) — surfaced as "Fatura"
   asaasTransferId String? // internal Asaas transfer to establishment
 
   settledAt DateTime?

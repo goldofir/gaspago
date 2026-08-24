@@ -12,6 +12,7 @@ type Payment = {
   pixAmount: string
   cashbackPercent: number
   status: string
+  invoiceUrl: string | null
   createdAt: string
   settledAt?: string
 }
@@ -57,7 +58,7 @@ export default function PosHistoryPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--ground)' }}>
-                  {['Data', 'Valor Total', 'FGOL Usado', 'Via PIX', 'Cashback', 'Status'].map(h => (
+                  {['Data', 'Valor Total', 'FGOL Usado', 'Via PIX', 'Cashback', 'Status', 'Fatura'].map(h => (
                     <th key={h} style={{ textAlign: 'left', padding: '10px 14px', color: 'var(--muted)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em' }}>{h}</th>
                   ))}
                 </tr>
@@ -76,6 +77,13 @@ export default function PosHistoryPage() {
                         <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${s.color}18`, color: s.color }}>
                           {s.label}
                         </span>
+                      </td>
+                      <td style={{ padding: '12px 14px' }}>
+                        {p.invoiceUrl ? (
+                          <a href={p.invoiceUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, fontWeight: 600, color: 'var(--flame)', textDecoration: 'none' }}>
+                            🧾 Ver
+                          </a>
+                        ) : '–'}
                       </td>
                     </tr>
                   )

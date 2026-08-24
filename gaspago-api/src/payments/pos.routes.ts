@@ -195,6 +195,7 @@ export async function posRoutes(app: FastifyInstance) {
         pixAmount,
         status: 'AWAITING_PAYMENT',
         asaasChargeId: charge.id,
+        invoiceUrl: charge.invoiceUrl,
       },
     })
 

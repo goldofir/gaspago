@@ -112,7 +112,7 @@ export async function orderRoutes(app: FastifyInstance) {
       })
       const pixQr = charge.pixQrCode ?? (await getPixQrCode(charge.id).catch(() => undefined))
 
-      const updatedOrder = await prisma.order.update({ where: { id: order.id }, data: { asaasChargeId: charge.id } })
+      const updatedOrder = await prisma.order.update({ where: { id: order.id }, data: { asaasChargeId: charge.id, invoiceUrl: charge.invoiceUrl } })
       if (body.fgolToUse > 0) {
         await prisma.user.update({ where: { id: customerId }, data: { fgolBalance: { decrement: body.fgolToUse } } })
       }
