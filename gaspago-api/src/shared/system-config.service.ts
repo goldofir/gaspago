@@ -123,6 +123,10 @@ export const KNOWN_KEYS: Record<string, { label: string; group: string; sensitiv
   FGOL_ONCHAIN_BATCH_THRESHOLD_BRL: { label: 'Valor mínimo p/ enviar FGOL à blockchain (R$)', group: 'polygon', sensitive: false, hint: 'Comissões acumulam em pendingOnChainAmount até bater esse valor, aí vira 1 transferência real na carteira do usuário. Evita 1 tx a cada centavo de comissão.' },
   FGOL_MIN_PIX_WITHDRAWAL_BRL: { label: 'Valor mínimo p/ saque via PIX (R$)', group: 'polygon', sensitive: false, hint: 'Abaixo desse valor em FGOL, o usuário não consegue solicitar saque em PIX — só usar no marketplace.' },
 
+  // Matriz de afiliados
+  MATRIX_WIDTH: { label: 'Largura da matriz (indicados diretos por linha)', group: 'matrix', sensitive: false, hint: 'Ex.: 5 = matriz 5x5. Ao encher, os próximos indicados transbordam pro indicado mais antigo com vaga.' },
+  MATRIX_DEPTH: { label: 'Profundidade da matriz (níveis que pagam comissão)', group: 'matrix', sensitive: false, hint: 'Quantos níveis acima de quem consumiu recebem comissão de rede. A comissão de rede é dividida igualmente entre esses níveis.' },
+
   // Web3Auth
   WEB3AUTH_CLIENT_ID:     { label: 'Web3Auth Client ID',     group: 'web3auth', sensitive: false, hint: 'Encontre em dashboard.web3auth.io → seu projeto → Client ID' },
   WEB3AUTH_CLIENT_SECRET: { label: 'Web3Auth Client Secret', group: 'web3auth', sensitive: true,  hint: 'Usado para verificar JWTs no servidor' },

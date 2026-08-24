@@ -1,6 +1,7 @@
 import { PosPayment } from '@prisma/client'
 import { prisma } from '../shared/prisma'
 import { config } from '../config'
+import { collectAncestorUserIds, getMatrixDepth } from './matrix-placement.service'
 
 const { consumerPct, platformPct, networkPct, credenciadorPct, establishmentBonusPct } = config.commission
 
@@ -35,22 +36,20 @@ export async function distributeCommissionsPos(pos: PosPayment) {
     })
     balanceUpdates.push({ userId: customer.id, amount: consumerAmount, active: consumerActive })
 
-    // Walk matrix for network commissions
-    const matrixPos = await prisma.matrixPosition.findUnique({
-      where: { userId: customer.id },
-      include: { parent: { include: { parent: { include: { parent: { include: { parent: { include: { parent: true } } } } } } } } },
-    })
-    if (matrixPos) {
-      const levels = getAncestors(matrixPos)
-      const perLevel = (margin * networkPct) / levels.length
-      for (let i = 0; i < levels.length; i++) {
-        const anc = levels[i]
-        const u = await prisma.user.findUnique({ where: { id: anc.userId } })
-        if (!u) continue
-        const active = isActive(u.affiliateStatus)
-        entries.push({ recipientId: u.id, posPaymentId: pos.id, amount: perLevel, currency: 'FGOL', status: active ? 'RELEASED' : 'BLOCKED', role: `network_l${i + 1}`, matrixLevel: i + 1 })
-        balanceUpdates.push({ userId: u.id, amount: perLevel, active })
-      }
+    // Walk matrix for network commissions — same depth-based split as orders
+    // (distributeCommissions in commission.service.ts): a fixed share per
+    // configured level, not divided by however many ancestors happen to
+    // exist. Fewer ancestors than MATRIX_DEPTH just means those levels'
+    // share goes unpaid, same as the order flow.
+    const depth = getMatrixDepth()
+    const perLevel = (margin * networkPct) / depth
+    const ancestorIds = await collectAncestorUserIds(customer.id, depth)
+    for (let i = 0; i < ancestorIds.length; i++) {
+      const u = await prisma.user.findUnique({ where: { id: ancestorIds[i] } })
+      if (!u) continue
+      const active = isActive(u.affiliateStatus)
+      entries.push({ recipientId: u.id, posPaymentId: pos.id, amount: perLevel, currency: 'FGOL', status: active ? 'RELEASED' : 'BLOCKED', role: `network_l${i + 1}`, matrixLevel: i + 1 })
+      balanceUpdates.push({ userId: u.id, amount: perLevel, active })
     }
   }
 
@@ -87,11 +86,4 @@ export async function distributeCommissionsPos(pos: PosPayment) {
       data: { lastPurchaseAt: new Date(), lastConsumptionAt: new Date(), affiliateStatus: 'ACTIVE', monthsWithoutPurchase: 0 },
     })
   }
-}
-
-function getAncestors(pos: any) {
-  const out: any[] = []
-  let cur = pos.parent
-  while (cur && out.length < 5) { out.push(cur); cur = cur.parent }
-  return out
 }

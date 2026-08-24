@@ -1,6 +1,7 @@
 import { prisma } from '../shared/prisma'
 import { Currency, CommissionStatus, Prisma } from '@prisma/client'
 import { config } from '../config'
+import { collectAncestorUserIds, getMatrixDepth } from './matrix-placement.service'
 
 const {
   consumerPct,
@@ -48,49 +49,30 @@ export async function distributeCommissions(orderId: string): Promise<void> {
   })
   balanceUpdates.push({ userId: customer.id, amount: consumerAmount, active: isActive(customer.affiliateStatus) })
 
-  // Network: walk up to 5 matrix levels
-  const perLevel = (margin * networkPct) / 5
-  const matrixPos = await prisma.matrixPosition.findUnique({
-    where: { userId: customer.id },
-    include: {
-      parent: {
-        include: {
-          parent: {
-            include: {
-              parent: {
-                include: {
-                  parent: {
-                    include: { parent: true },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
+  // Network: walk up the matrix tree, paying MATRIX_DEPTH ancestor levels an
+  // equal share each. Unfilled levels (fewer ancestors than depth exist) just
+  // don't get an entry — their share isn't redirected anywhere, matching how
+  // this always worked before depth became configurable.
+  const depth = getMatrixDepth()
+  const perLevel = (margin * networkPct) / depth
+  const ancestorIds = await collectAncestorUserIds(customer.id, depth)
 
-  if (matrixPos) {
-    const ancestors = collectAncestors(matrixPos)
-    for (let i = 0; i < ancestors.length; i++) {
-      const anc = ancestors[i]
-      const ancUser = await prisma.user.findUnique({
-        where: { id: anc.userId },
-        select: { id: true, affiliateStatus: true },
-      })
-      if (!ancUser) continue
-      ledgerEntries.push({
-        recipientId: ancUser.id,
-        orderId: order.id,
-        amount: perLevel,
-        currency: Currency.FGOL,
-        status: resolveStatus(ancUser.affiliateStatus),
-        role: `network_l${i + 1}`,
-        matrixLevel: i + 1,
-      })
-      balanceUpdates.push({ userId: ancUser.id, amount: perLevel, active: isActive(ancUser.affiliateStatus) })
-    }
+  for (let i = 0; i < ancestorIds.length; i++) {
+    const ancUser = await prisma.user.findUnique({
+      where: { id: ancestorIds[i] },
+      select: { id: true, affiliateStatus: true },
+    })
+    if (!ancUser) continue
+    ledgerEntries.push({
+      recipientId: ancUser.id,
+      orderId: order.id,
+      amount: perLevel,
+      currency: Currency.FGOL,
+      status: resolveStatus(ancUser.affiliateStatus),
+      role: `network_l${i + 1}`,
+      matrixLevel: i + 1,
+    })
+    balanceUpdates.push({ userId: ancUser.id, amount: perLevel, active: isActive(ancUser.affiliateStatus) })
   }
 
   // Credenciador
@@ -145,14 +127,4 @@ export async function distributeCommissions(orderId: string): Promise<void> {
   })
 
   console.log(`[commissions] Distributed ${margin} FGOL margin for orderId=${orderId} (${ledgerEntries.length} ledger entries)`)
-}
-
-function collectAncestors(pos: any): any[] {
-  const out: any[] = []
-  let cur = pos.parent
-  while (cur && out.length < 5) {
-    out.push(cur)
-    cur = cur.parent
-  }
-  return out
 }
