@@ -33,7 +33,8 @@ export const In1888EcacService = {
       },
     })
 
-    const totalVolumeBrl = buybacks.reduce((sum, b) => sum + b.brlSpent, 0)
+    const totalVolumeBrl = buybacks.reduce((sum, b) => sum + Number(b.brlSpent), 0)
+
     const thresholdBrl = 30000.0
     const requiresDeclaration = totalVolumeBrl >= thresholdBrl
 

@@ -46,7 +46,8 @@ export const CnpjAuditorService = {
         throw Object.assign(new Error('Serviço da Receita Federal temporariamente indisponível.'), { statusCode: 502 })
       }
 
-      const data = await res.json() as any
+      const data: any = await res.json()
+
 
       const mainCnae = data.cnae_fiscal || 0
       const cnaesSec = (data.cnaes_secundarios ?? []).map((c: any) => c.codigo)
