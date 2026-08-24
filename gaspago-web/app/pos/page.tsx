@@ -97,6 +97,18 @@ export default function PosPage() {
     setSecondsLeft(300)
   }
 
+  async function handleCancel() {
+    if (charge) {
+      try {
+        await portalFetch(TOKEN_KEY, `${API}/pos/charge/${charge.id}/cancel`, { method: 'POST' })
+      } catch {
+        // best-effort — still reset the UI even if the request failed, the
+        // charge will expire on its own via qrExpiresAt either way
+      }
+    }
+    reset()
+  }
+
   useEffect(() => () => stopAll(), [])
 
   const displayAmount = `R$ ${amount.includes(',') ? amount : `${amount},00`}`
@@ -163,7 +175,7 @@ export default function PosPage() {
             <span style={{ fontSize: 13, fontWeight: 700, color: secondsLeft < 60 ? '#EF4444' : '#3B82F6' }}>Expira em {min}:{sec}</span>
           </div>
 
-          <button onClick={reset} style={{ width: '100%', padding: '12px', borderRadius: 12, background: 'var(--ground)', border: '1px solid var(--border)', color: 'var(--muted)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+          <button onClick={handleCancel} style={{ width: '100%', padding: '12px', borderRadius: 12, background: 'var(--ground)', border: '1px solid var(--border)', color: 'var(--muted)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             Cancelar
           </button>
         </div>

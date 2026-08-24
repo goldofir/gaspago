@@ -103,6 +103,24 @@ export async function posRoutes(app: FastifyInstance) {
     }
   })
 
+  // POST /pos/charge/:id/cancel — establishment cancels a charge nobody scanned yet.
+  // The web panel's "Cancelar" button previously only reset local UI state and
+  // never called any endpoint — the charge stayed AWAITING_SCAN on the server
+  // until it expired on its own.
+  app.post('/charge/:id/cancel', { preHandler: requireEstablishment }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const payment = await prisma.posPayment.findUniqueOrThrow({ where: { id } })
+    if (payment.establishmentId !== (req as any).user?.establishmentId) {
+      return reply.status(404).send({ error: 'Cobrança não encontrada.' })
+    }
+    if (payment.status !== 'AWAITING_SCAN') {
+      return reply.status(409).send({ error: 'Só é possível cancelar uma cobrança que ainda não foi escaneada.' })
+    }
+
+    await prisma.posPayment.update({ where: { id }, data: { status: 'CANCELLED' } })
+    return reply.send({ ok: true })
+  })
+
   // POST /pos/scan — mobile app scans QR code and confirms payment
   app.post('/scan', async (req, reply) => {
     const body = ScanQrSchema.parse(req.body)
