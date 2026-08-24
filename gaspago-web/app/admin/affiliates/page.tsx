@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Fragment } from 'react'
 import { adminFetch } from '../../_components/adminFetch'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
@@ -139,6 +139,9 @@ const FILTER_OPTIONS: { value: FilterOption; label: string }[] = [
   { value: 'EXPIRED', label: 'Expirados' },
 ]
 
+type MatrixContact = { id: string; name: string | null; phone: string }
+type MatrixDetail = { referredBy: MatrixContact | null; placedUnder: MatrixContact | null; referralCode: string }
+
 export default function AffiliatesPage() {
   const [stats, setStats] = useState<UserStats | null>(null)
   const [users, setUsers] = useState<AffiliateUser[]>([])
@@ -146,6 +149,24 @@ export default function AffiliatesPage() {
   const [filter, setFilter] = useState<FilterOption>('all')
   const [loadingStats, setLoadingStats] = useState(true)
   const [loadingUsers, setLoadingUsers] = useState(true)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [matrixDetail, setMatrixDetail] = useState<MatrixDetail | null>(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
+
+  function toggleExpand(userId: string) {
+    if (expandedId === userId) {
+      setExpandedId(null)
+      return
+    }
+    setExpandedId(userId)
+    setMatrixDetail(null)
+    setLoadingDetail(true)
+    adminFetch(`${API}/affiliates/${userId}/matrix`)
+      .then(r => r.json())
+      .then(data => setMatrixDetail({ referredBy: data.referredBy, placedUnder: data.placedUnder, referralCode: data.referralCode }))
+      .catch(() => setMatrixDetail(null))
+      .finally(() => setLoadingDetail(false))
+  }
 
   useEffect(() => {
     setLoadingStats(true)
@@ -511,21 +532,46 @@ export default function AffiliatesPage() {
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr key={u.id}>
-                    <td>
-                      <div className="user-name">{u.name ?? '—'}</div>
-                      <div className="user-phone">{u.phone}</div>
-                    </td>
-                    <td>
-                      <StatusBadge status={u.affiliateStatus} />
-                    </td>
-                    <td>
-                      <span className="fgol-val">{u.fgolBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </td>
-                    <td>{u._count.orders}</td>
-                    <td>{fmtDate(u.lastPurchaseAt)}</td>
-                    <td>{fmtDate(u.createdAt)}</td>
-                  </tr>
+                  <Fragment key={u.id}>
+                    <tr onClick={() => toggleExpand(u.id)} style={{ cursor: 'pointer' }}>
+                      <td>
+                        <div className="user-name">{u.name ?? '—'}</div>
+                        <div className="user-phone">{u.phone}</div>
+                      </td>
+                      <td>
+                        <StatusBadge status={u.affiliateStatus} />
+                      </td>
+                      <td>
+                        <span className="fgol-val">{u.fgolBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </td>
+                      <td>{u._count.orders}</td>
+                      <td>{fmtDate(u.lastPurchaseAt)}</td>
+                      <td>{fmtDate(u.createdAt)}</td>
+                    </tr>
+                    {expandedId === u.id && (
+                      <tr key={`${u.id}-detail`}>
+                        <td colSpan={6} style={{ background: 'var(--ground)', padding: '14px 20px' }}>
+                          {loadingDetail ? (
+                            <span style={{ fontSize: 13, color: 'var(--muted)' }}>Carregando…</span>
+                          ) : (
+                            <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', fontSize: 13 }}>
+                              <div>
+                                <span style={{ color: 'var(--muted)' }}>Quem indicou: </span>
+                                <strong>{matrixDetail?.referredBy ? (matrixDetail.referredBy.name ?? matrixDetail.referredBy.phone) : 'Ninguém (cadastro orgânico)'}</strong>
+                              </div>
+                              <div>
+                                <span style={{ color: 'var(--muted)' }}>Posicionado abaixo de: </span>
+                                <strong>{matrixDetail?.placedUnder ? (matrixDetail.placedUnder.name ?? matrixDetail.placedUnder.phone) : 'Raiz da própria rede'}</strong>
+                              </div>
+                              {matrixDetail?.referredBy && matrixDetail?.placedUnder && matrixDetail.referredBy.id !== matrixDetail.placedUnder.id && (
+                                <div style={{ color: 'var(--flame)', fontWeight: 600 }}>↳ Transbordou (indicador com linha cheia)</div>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -533,7 +579,7 @@ export default function AffiliatesPage() {
             {/* Mobile cards */}
             <div className="mobile-cards">
               {users.map((u) => (
-                <div key={u.id} className="mobile-card">
+                <div key={u.id} className="mobile-card" onClick={() => toggleExpand(u.id)} style={{ cursor: 'pointer' }}>
                   <div className="mobile-card-top">
                     <div>
                       <div className="user-name">{u.name ?? '—'}</div>
@@ -559,6 +605,27 @@ export default function AffiliatesPage() {
                     <span>Cadastro</span>
                     <span className="mobile-card-val">{fmtDate(u.createdAt)}</span>
                   </div>
+                  {expandedId === u.id && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', fontSize: 12.5 }}>
+                      {loadingDetail ? (
+                        <span style={{ color: 'var(--muted)' }}>Carregando…</span>
+                      ) : (
+                        <>
+                          <div className="mobile-card-row">
+                            <span>Quem indicou</span>
+                            <span className="mobile-card-val">{matrixDetail?.referredBy ? (matrixDetail.referredBy.name ?? matrixDetail.referredBy.phone) : 'Ninguém'}</span>
+                          </div>
+                          <div className="mobile-card-row">
+                            <span>Posicionado abaixo de</span>
+                            <span className="mobile-card-val">{matrixDetail?.placedUnder ? (matrixDetail.placedUnder.name ?? matrixDetail.placedUnder.phone) : 'Raiz'}</span>
+                          </div>
+                          {matrixDetail?.referredBy && matrixDetail?.placedUnder && matrixDetail.referredBy.id !== matrixDetail.placedUnder.id && (
+                            <div style={{ color: 'var(--flame)', fontWeight: 600, marginTop: 4 }}>↳ Transbordou</div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

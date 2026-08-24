@@ -256,11 +256,22 @@ export interface MatrixLevel {
   earned: number;
 }
 
+export interface MatrixContact {
+  id: string;
+  name: string | null;
+  phone: string;
+}
+
 export interface MatrixData {
   levels: MatrixLevel[];
   totalEarned: number;
   referralCode: string;
   referralLink: string;
+  // Who actually invited you (never changes) vs. who you landed under in the
+  // matrix — these differ once you're the 6th+ referral of the same sponsor
+  // and spillover places you under one of their earlier referrals instead.
+  referredBy: MatrixContact | null;
+  placedUnder: MatrixContact | null;
 }
 
 export const getMatrix = (userId: string): Promise<MatrixData> =>

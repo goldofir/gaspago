@@ -87,6 +87,31 @@ export function MatrixNetworkScreen() {
           <Text style={styles.subtitle}>Comissões acumuladas da sua rede de indicados</Text>
         </View>
 
+        {/* Who invited you vs. who you actually landed under — these differ
+            once you're the 6th+ referral of the same sponsor and spillover
+            places you elsewhere in their downline. */}
+        {(matrix?.referredBy || matrix?.placedUnder) && (
+          <View style={styles.lineageCard}>
+            {matrix.referredBy && (
+              <View style={styles.lineageRow}>
+                <Text style={styles.lineageLabel}>Quem indicou você</Text>
+                <Text style={styles.lineageValue}>{matrix.referredBy.name || matrix.referredBy.phone}</Text>
+              </View>
+            )}
+            {matrix.placedUnder && (
+              <View style={styles.lineageRow}>
+                <Text style={styles.lineageLabel}>Você está posicionado abaixo de</Text>
+                <Text style={styles.lineageValue}>{matrix.placedUnder.name || matrix.placedUnder.phone}</Text>
+              </View>
+            )}
+            {matrix.referredBy && matrix.placedUnder && matrix.referredBy.id !== matrix.placedUnder.id && (
+              <Text style={styles.lineageNote}>
+                Quem indicou você já tinha a linha cheia, então você entrou em outro ponto da rede dele.
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* Total earned card */}
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>Total ganho pela rede</Text>
@@ -147,6 +172,15 @@ const styles = StyleSheet.create({
   header: { marginBottom: 20 },
   title: { fontSize: 24, fontWeight: '800', color: NAVY },
   subtitle: { fontSize: 13, color: '#64748B', marginTop: 4 },
+  // Lineage card
+  lineageCard: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20,
+    borderWidth: 1, borderColor: '#E9EDF3',
+  },
+  lineageRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+  lineageLabel: { fontSize: 12.5, color: '#64748B' },
+  lineageValue: { fontSize: 13.5, fontWeight: '700', color: NAVY },
+  lineageNote: { fontSize: 11.5, color: '#94A3B8', marginTop: 8, lineHeight: 16, fontStyle: 'italic' },
   // Total card
   totalCard: {
     backgroundColor: NAVY, borderRadius: 20, padding: 24,

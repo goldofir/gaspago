@@ -139,8 +139,9 @@ model User {
   monthsWithoutPurchase Int             @default(0)
   lastPurchaseAt        DateTime?
 
-  // Matrix
-  matrixPosition MatrixPosition?
+  // Matrix — a list, not one-to-one: a member re-enters as a fresh root once
+  // their current matrix cycle fills completely (see MatrixPosition.userId).
+  matrixPositions MatrixPosition[]
 
   // FGOL internal ledger — authoritative for what's redeemable (PIX / marketplace).
   // Only ever credited by internal platform events (commission, cashback, internal
@@ -254,19 +255,27 @@ model KycAuditLog {
 
 model MatrixPosition {
   id     String @id @default(cuid())
-  userId String @unique
+  // Not unique: once a member's own matrix fills completely (all
+  // MATRIX_DEPTH generations saturated), they re-enter as a fresh root —
+  // a second, independent MatrixPosition row for the same user. Whichever
+  // is most recent (by createdAt) is that user's active cycle for new
+  // placements; older ones stay in the tree, already full, still paying
+  // out to whoever's above them.
+  userId String
   user   User   @relation(fields: [userId], references: [id])
 
   parentId String?
   parent   MatrixPosition?  @relation("Tree", fields: [parentId], references: [id])
   children MatrixPosition[] @relation("Tree")
 
-  level    Int    // 1–5
-  position Int    // 1–5 within parent
+  level    Int    // 1 = root of this cycle; capped at MATRIX_DEPTH + 1
+  position Int    // 1..MATRIX_WIDTH within parent
   path     String // "1.2.3" — for tree traversal queries
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // ─── DISTRIBUTORS ─────────────────────────────────────────────────────────────
@@ -363,6 +372,10 @@ model MarketplaceItem {
   price           Decimal       @db.Decimal(10, 2)
   imageUrl        String?
   isAvailable     Boolean       @default(true)
+  // Null = use the establishment's own cashbackPercent (the default). Set =
+  // this specific product/service pays a different cashback % than the rest
+  // of the catalog — e.g. a promo item or a low-margin product.
+  cashbackPercentOverride Float?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 }
