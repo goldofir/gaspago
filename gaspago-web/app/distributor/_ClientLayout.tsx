@@ -3,12 +3,13 @@ import type { ReactNode } from 'react'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, ShoppingBag, Package, Settings, Menu, X, ChevronRight, LogOut } from 'lucide-react'
+import { LayoutDashboard, ShoppingBag, Package, Settings, Menu, X, ChevronRight, LogOut, Share2 } from 'lucide-react'
 
 const nav = [
   { href: '/distributor',          label: 'Dashboard',    Icon: LayoutDashboard },
   { href: '/distributor/orders',   label: 'Pedidos',      Icon: ShoppingBag },
   { href: '/distributor/products', label: 'Catálogo',     Icon: Package },
+  { href: '/distributor/network',  label: 'Minha Rede',   Icon: Share2 },
   { href: '/distributor/settings', label: 'Configurações',Icon: Settings },
 ]
 
