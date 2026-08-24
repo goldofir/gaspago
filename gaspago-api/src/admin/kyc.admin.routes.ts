@@ -50,4 +50,34 @@ export async function kycAdminRoutes(app: FastifyInstance) {
     const updated = await KycService.reviewKyc(id, adminUserId, action, notes)
     return reply.send({ ok: true, submission: updated })
   })
+
+  // POST /admin/kyc/:id/revoke — inactivate/revoke approved KYC
+  app.post('/:id/revoke', { preHandler: requireAdmin }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const adminUserId = (req as any).user.id as string
+    const { reason } = (req.body ?? {}) as { reason?: string }
+
+    const updated = await KycService.revokeKyc(id, adminUserId, reason)
+    return reply.send({ ok: true, submission: updated })
+  })
+
+  // PATCH /admin/kyc/:id/edit — edit KYC registration metadata
+  app.patch('/:id/edit', { preHandler: requireAdmin }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const adminUserId = (req as any).user.id as string
+    const data = req.body as { fullName?: string; cpf?: string; documentType?: string; documentNumber?: string; adminNotes?: string }
+
+    const updated = await KycService.editKyc(id, adminUserId, data)
+    return reply.send({ ok: true, submission: updated })
+  })
+
+  // DELETE /admin/kyc/:id — purge KYC submission and reset user status to Level 0 Unverified
+  app.delete('/:id', { preHandler: requireAdmin }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const adminUserId = (req as any).user.id as string
+
+    const res = await KycService.deleteKyc(id, adminUserId)
+    return reply.send(res)
+  })
 }
+

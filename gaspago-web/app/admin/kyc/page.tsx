@@ -116,6 +116,49 @@ export default function AdminKycPage() {
       .finally(() => setActionLoading(false))
   }
 
+  function handleRevoke() {
+    if (!selectedId || !confirm('Tem certeza que deseja inativar/revogar a verificação KYC deste usuário?')) return
+    setActionLoading(true)
+    setMsg(null)
+
+    adminFetch(`${API}/admin/kyc/${selectedId}/revoke`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: notesInput || 'Inativado pelo Administrador.' }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          setMsg({ text: 'KYC inativado/revogado com sucesso!', type: 'success' })
+          loadSubmissions()
+          setTimeout(() => setSelectedId(null), 1200)
+        } else {
+          setMsg({ text: data.error || 'Erro ao revogar KYC.', type: 'error' })
+        }
+      })
+      .finally(() => setActionLoading(false))
+  }
+
+  function handleDelete() {
+    if (!selectedId || !confirm('ATENÇÃO: Deseja EXCLUIR permanentemente o registro de KYC deste usuário?')) return
+    setActionLoading(true)
+    setMsg(null)
+
+    adminFetch(`${API}/admin/kyc/${selectedId}`, {
+      method: 'DELETE',
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          setMsg({ text: 'Registro de KYC excluído com sucesso!', type: 'success' })
+          loadSubmissions()
+          setTimeout(() => setSelectedId(null), 1200)
+        } else {
+          setMsg({ text: data.error || 'Erro ao excluir registro de KYC.', type: 'error' })
+        }
+      })
+      .finally(() => setActionLoading(false))
+  }
+
   const pendingCount = items.filter(i => i.status === 'PENDING_REVIEW').length
 
   return (
@@ -194,7 +237,6 @@ export default function AdminKycPage() {
         {loading ? (
           <p style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>Carregando solicitações de KYC…</p>
         ) : items.length === 0 ? (
-
           <div style={{ padding: 48, textAlign: 'center' }}>
             <UserCheck size={40} color="var(--muted)" style={{ marginBottom: 12, opacity: .5 }} />
             <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Nenhuma solicitação encontrada</p>
@@ -247,7 +289,7 @@ export default function AdminKycPage() {
                         }}
                       >
                         <Eye size={13} />
-                        Inspecionar
+                        Inspecionar / Gerenciar
                       </button>
                     </td>
                   </tr>
@@ -266,13 +308,13 @@ export default function AdminKycPage() {
         }}>
           <div style={{
             background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18,
-            width: '100%', maxWidth: 900, maxHeight: '90vh', overflowY: 'auto', padding: 24,
+            width: '100%', maxWidth: 920, maxHeight: '90vh', overflowY: 'auto', padding: 24,
             boxShadow: '0 20px 50px rgba(0,0,0,.5)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
               <div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--flame)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Inspeção de Segurança</span>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)' }}>Análise Biométrica e Documental</h2>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--flame)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Inspeção & Governança SuperAdmin</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)' }}>Análise Biométrica e Gestão do Registro</h2>
               </div>
               <button
                 onClick={() => setSelectedId(null)}
@@ -333,8 +375,8 @@ export default function AdminKycPage() {
 
                     {/* Selfie */}
                     <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 10, background: 'var(--ground)' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase' }}>Selfie Prova de Vida (Liveness)</div>
-                      <img src={detail.selfieUrl} alt="Selfie Liveness" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 8 }} />
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase' }}>Selfie Prova de Vida</div>
+                      <img src={detail.selfieUrl} alt="Selfie Prova de Vida" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 8 }} />
                     </div>
                   </div>
                 </div>
@@ -342,13 +384,13 @@ export default function AdminKycPage() {
                 {/* Notes Input */}
                 <div style={{ marginBottom: 24 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-                    Observações de Compliance / Motivo de Rejeição
+                    Observações de Governança / Justificativa
                   </label>
                   <textarea
                     rows={2}
                     value={notesInput}
                     onChange={e => setNotesInput(e.target.value)}
-                    placeholder="Ex: Documento legível e selfie compatível / Foto com reflexo de luz na foto do RG..."
+                    placeholder="Ex: Documentos verificados ou motivo de inativação/exclusão..."
                     style={{
                       width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--border)',
                       background: 'var(--ground)', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit'
@@ -356,46 +398,76 @@ export default function AdminKycPage() {
                   />
                 </div>
 
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                  <button
-                    disabled={actionLoading}
-                    onClick={() => handleReview('FRAUD')}
-                    style={{
-                      padding: '10px 18px', borderRadius: 10, border: '1px solid #DC2626',
-                      background: 'rgba(220,38,38,.1)', color: '#DC2626', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 8
-                    }}
-                  >
-                    <ShieldAlert size={16} />
-                    Sinalizar Fraude
-                  </button>
+                {/* Action Buttons Toolbar */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                  {/* Left: Governance & Destruction */}
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      disabled={actionLoading}
+                      onClick={handleRevoke}
+                      style={{
+                        padding: '10px 16px', borderRadius: 10, border: '1px solid #F59E0B',
+                        background: 'rgba(245,158,11,.1)', color: '#F59E0B', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6
+                      }}
+                    >
+                      🚫 Inativar / Revogar
+                    </button>
 
-                  <button
-                    disabled={actionLoading}
-                    onClick={() => handleReview('REJECT')}
-                    style={{
-                      padding: '10px 18px', borderRadius: 10, border: '1px solid #EF4444',
-                      background: 'rgba(239,68,68,.1)', color: '#EF4444', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 8
-                    }}
-                  >
-                    <XCircle size={16} />
-                    Rejeitar KYC
-                  </button>
+                    <button
+                      disabled={actionLoading}
+                      onClick={handleDelete}
+                      style={{
+                        padding: '10px 16px', borderRadius: 10, border: '1px solid #991B1B',
+                        background: 'rgba(153,27,27,.1)', color: '#991B1B', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6
+                      }}
+                    >
+                      🗑️ Excluir Registro
+                    </button>
+                  </div>
 
-                  <button
-                    disabled={actionLoading}
-                    onClick={() => handleReview('APPROVE')}
-                    style={{
-                      padding: '10px 22px', borderRadius: 10, border: 'none',
-                      background: '#10B981', color: '#FFF', fontSize: 13, fontWeight: 800, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 12px rgba(16,185,129,.3)'
-                    }}
-                  >
-                    <CheckCircle2 size={16} />
-                    {actionLoading ? 'Processando…' : 'Aprovar KYC Nível 2'}
-                  </button>
+                  {/* Right: Status Changes */}
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      disabled={actionLoading}
+                      onClick={() => handleReview('FRAUD')}
+                      style={{
+                        padding: '10px 16px', borderRadius: 10, border: '1px solid #DC2626',
+                        background: 'rgba(220,38,38,.1)', color: '#DC2626', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6
+                      }}
+                    >
+                      <ShieldAlert size={15} />
+                      Sinalizar Fraude
+                    </button>
+
+                    <button
+                      disabled={actionLoading}
+                      onClick={() => handleReview('REJECT')}
+                      style={{
+                        padding: '10px 16px', borderRadius: 10, border: '1px solid #EF4444',
+                        background: 'rgba(239,68,68,.1)', color: '#EF4444', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6
+                      }}
+                    >
+                      <XCircle size={15} />
+                      Rejeitar
+                    </button>
+
+                    <button
+                      disabled={actionLoading}
+                      onClick={() => handleReview('APPROVE')}
+                      style={{
+                        padding: '10px 20px', borderRadius: 10, border: 'none',
+                        background: '#10B981', color: '#FFF', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 12px rgba(16,185,129,.3)'
+                      }}
+                    >
+                      <CheckCircle2 size={16} />
+                      {actionLoading ? 'Processando…' : 'Aprovar KYC Nível 2'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -405,3 +477,4 @@ export default function AdminKycPage() {
     </div>
   )
 }
+

@@ -149,7 +149,7 @@ export const KycService = {
       },
     })
 
-    // Se aprovado automaticamente pela IA, libera a conta e altera o nível de KYC na hora!
+    // Se aprovado automaticamente, libera a conta e altera o nível de KYC na hora!
     if (isAutoApproved) {
       await prisma.user.update({
         where: { id: input.userId },
@@ -157,8 +157,8 @@ export const KycService = {
       })
       NotificationService.sendToUser(
         input.userId,
-        'KYC Aprovado pela IA! ⭐',
-        'Sua identidade foi verificada e aprovada automaticamente pelo nosso Agente de IA. Saques PIX liberados!'
+        'Identidade Verificada! ⭐',
+        'Sua verificação de identidade foi concluída com sucesso. Saques PIX liberados!'
       ).catch(() => {})
     }
 
@@ -169,7 +169,6 @@ export const KycService = {
 
     return submission
   },
-
 
   async getKycStatus(userId: string) {
     const user = await prisma.user.findUniqueOrThrow({
@@ -249,14 +248,105 @@ export const KycService = {
       return sub
     })
 
-    // Dispara push notification para o usuário sobre o resultado
+    // Dispara push notification neutra/corporativa
     if (action === 'APPROVE') {
-      NotificationService.sendToUser(submission.userId, 'KYC Aprovado! ⭐', 'Sua identidade foi verificada. Limites de saque PIX liberados!').catch(() => {})
+      NotificationService.sendToUser(submission.userId, 'Identidade Verificada! ⭐', 'Sua análise de verificação foi aprovada. Saques PIX liberados!').catch(() => {})
     } else {
-      NotificationService.sendToUser(submission.userId, 'Verificação de KYC ⚠️', notes ?? 'Verifique os dados enviados e tente novamente.').catch(() => {})
+      NotificationService.sendToUser(submission.userId, 'Atualização da Conta ⚠️', notes ?? 'Verifique os dados enviados e tente novamente.').catch(() => {})
     }
 
     return updated
+  },
+
+  // Admin Action: Inativar / Revogar KYC aprovado previamente
+  async revokeKyc(submissionId: string, adminUserId: string, reason?: string) {
+    const submission = await prisma.kycSubmission.findUniqueOrThrow({ where: { id: submissionId } })
+
+    return prisma.$transaction(async (tx) => {
+      const sub = await tx.kycSubmission.update({
+        where: { id: submissionId },
+        data: {
+          status: 'REJECTED',
+          rejectionReason: reason ?? 'Verificação inativada/revogada pelo administrador.',
+          adminNotes: reason,
+          reviewedAt: new Date(),
+          reviewedById: adminUserId,
+          auditLogs: {
+            create: {
+              actorId: adminUserId,
+              action: 'REVOKED',
+              notes: reason ?? 'KYC revogado administrativamente.',
+            },
+          },
+        },
+      })
+
+      await tx.user.update({
+        where: { id: submission.userId },
+        data: { kycVerified: false, kycLevel: 'LEVEL_0_UNVERIFIED' },
+      })
+
+      return sub
+    })
+  },
+
+  // Admin Action: Editar dados de identificação do registro KYC
+  async editKyc(submissionId: string, adminUserId: string, data: {
+    fullName?: string
+    cpf?: string
+    documentType?: string
+    documentNumber?: string
+    adminNotes?: string
+  }) {
+    return prisma.$transaction(async (tx) => {
+      const sub = await tx.kycSubmission.update({
+        where: { id: submissionId },
+        data: {
+          fullName: data.fullName,
+          cpf: data.cpf,
+          documentType: data.documentType,
+          documentNumber: data.documentNumber,
+          adminNotes: data.adminNotes,
+          auditLogs: {
+            create: {
+              actorId: adminUserId,
+              action: 'EDITED',
+              notes: 'Dados cadastrais do KYC alterados pelo Administrador.',
+            },
+          },
+        },
+      })
+
+      if (data.cpf || data.fullName) {
+        await tx.user.update({
+          where: { id: sub.userId },
+          data: {
+            ...(data.cpf && { cpf: data.cpf }),
+            ...(data.fullName && { name: data.fullName }),
+          },
+        })
+      }
+
+      return sub
+    })
+  },
+
+  // Admin Action: Excluir registro de KYC permanentemente
+  async deleteKyc(submissionId: string, adminUserId: string) {
+    const sub = await prisma.kycSubmission.findUniqueOrThrow({ where: { id: submissionId } })
+
+    return prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: sub.userId },
+        data: { kycVerified: false, kycLevel: 'LEVEL_0_UNVERIFIED' },
+      })
+
+      await tx.kycSubmission.delete({
+        where: { id: submissionId },
+      })
+
+      return { ok: true, deletedId: submissionId }
+    })
   },
 
   async getSubmissionWithSignedUrls(submissionId: string) {
@@ -281,9 +371,10 @@ export const KycService = {
     const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { kycVerified: true, kycLevel: true } })
     if (!user.kycVerified || user.kycLevel === 'LEVEL_0_UNVERIFIED') {
       throw Object.assign(
-        new Error('Sua conta precisa estar com o KYC Aprovado para realizar saques via PIX. Envie seus documentos no aplicativo.'),
+        new Error('Sua conta precisa estar com a Verificação de Identidade (KYC) concluída para realizar saques via PIX.'),
         { statusCode: 403 }
       )
     }
   },
 }
+
