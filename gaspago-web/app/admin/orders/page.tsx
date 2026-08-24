@@ -322,11 +322,10 @@ export default function OrdersPage() {
           color: var(--text);
         }
 
-        .stats-row {
+        .stats-grid {
           display: flex;
           gap: 16px;
-          margin-bottom: 28px;
-          flex-wrap: wrap;
+          margin-bottom: 24px;
         }
 
         .filter-bar {
@@ -341,6 +340,43 @@ export default function OrdersPage() {
           display: flex;
           gap: 6px;
           flex-wrap: wrap;
+        }
+
+        @media (max-width: 640px) {
+          .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+          }
+
+          .filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+          }
+
+          .chip-group {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 4px;
+            width: 100%;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .chip {
+            flex-shrink: 0;
+            padding: 5px 12px;
+            font-size: 12px;
+          }
+
+          .search-wrapper {
+            max-width: 100% !important;
+            width: 100% !important;
+          }
         }
 
         .chip {

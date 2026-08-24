@@ -181,7 +181,7 @@ export default function AffiliatesPage() {
     d ? new Date(d).toLocaleDateString('pt-BR') : '—'
 
   return (
-    <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
+    <div>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -209,13 +209,12 @@ export default function AffiliatesPage() {
         }
 
         * { box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: var(--ground); color: var(--text); }
 
         .stats-row {
           display: flex;
           gap: 16px;
           flex-wrap: wrap;
-          margin-bottom: 28px;
+          margin-bottom: 24px;
         }
 
         .filter-chips {
@@ -224,6 +223,38 @@ export default function AffiliatesPage() {
           flex-wrap: wrap;
           margin-bottom: 20px;
         }
+
+        @media (max-width: 640px) {
+          .stats-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+          }
+
+          .card-kpi {
+            padding: 14px 16px !important;
+            min-width: 0 !important;
+          }
+
+          .filter-chips {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 6px;
+            margin-bottom: 14px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .chip {
+            flex-shrink: 0;
+            padding: 5px 12px;
+            font-size: 12px;
+          }
+        }
+
 
         .chip {
           padding: 6px 16px;

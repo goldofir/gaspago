@@ -147,9 +147,14 @@ export default function RevenuePage() {
         }
         @media (max-width: 767px) {
           .rev-metrics {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+          }
+          .rev-metrics > div {
+            padding: 14px 16px !important;
           }
         }
+
       `}</style>
 
       {/* Header */}

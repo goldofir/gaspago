@@ -168,22 +168,29 @@ export default function AdminSubscriptionsPage() {
   }, [])
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'var(--ground)',
-        padding: '32px 24px',
-        fontFamily: 'Inter, sans-serif',
-        color: 'var(--text)',
-      }}
-    >
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <div>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @media (max-width: 640px) {
+          .sub-stats-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            margin-bottom: 20px !important;
+          }
+          .sub-stats-grid > div {
+            padding: 12px 14px !important;
+            min-width: 0 !important;
+          }
+        }
+      `}</style>
+      <div>
         {/* Header */}
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--flame)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--flame)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
             Monetização
           </div>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, fontFamily: 'Sora, sans-serif', color: 'var(--text)' }}>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, fontFamily: 'Sora, sans-serif', color: 'var(--text)' }}>
             Assinaturas Premium
           </h1>
         </div>
@@ -200,6 +207,7 @@ export default function AdminSubscriptionsPage() {
           </div>
         ) : stats ? (
           <div
+            className="sub-stats-grid"
             style={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -218,6 +226,7 @@ export default function AdminSubscriptionsPage() {
             />
           </div>
         ) : null}
+
 
         {/* Table */}
         {!loading && !error && (
