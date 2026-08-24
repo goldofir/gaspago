@@ -6,7 +6,7 @@ import { requireAuth } from '../shared/auth.middleware'
 import { createPixCharge, getPixQrCode, asaasErrorMessage } from '../payments/asaas.client'
 import { getOrCreateCustomerId } from '../payments/customer.service'
 import { finalizePosPayment } from '../payments/pos-payment.service'
-import { config } from '../config'
+import { getConsumerPct } from '../commissions/commission-config.service'
 
 const CATEGORY_LABELS: Record<string, string> = {
   restaurante: 'Restaurantes', farmacia: 'Farmácias', mercado: 'Mercados',
@@ -79,10 +79,17 @@ export async function marketplaceRoutes(app: FastifyInstance) {
     const items = await prisma.marketplaceItem.findMany({ where: { id: { in: itemIds }, establishmentId: est.id, isAvailable: true } })
     if (items.length !== itemIds.length) return reply.status(400).send({ error: 'Um ou mais itens não estão disponíveis.' })
 
+    // Margin is computed per line item — each item can override the
+    // establishment's default cashbackPercent (e.g. a promo item at a
+    // different margin than the rest of the catalog), so it can't be a
+    // single totalAmount * est.cashbackPercent like before.
     let totalAmount = 0
+    let marginOffered = 0
     for (const line of body.items) {
       const item = items.find(i => i.id === line.itemId)!
-      totalAmount += Number(item.price) * line.quantity
+      const lineAmount = Number(item.price) * line.quantity
+      totalAmount += lineAmount
+      marginOffered += lineAmount * (item.cashbackPercentOverride ?? est.cashbackPercent)
     }
 
     if (body.fgolToUse > 0) {
@@ -93,7 +100,6 @@ export async function marketplaceRoutes(app: FastifyInstance) {
     }
 
     const pixAmount = Math.max(0, totalAmount - body.fgolToUse)
-    const marginOffered = totalAmount * est.cashbackPercent
 
     const posPayment = await prisma.posPayment.create({
       data: {
@@ -125,7 +131,7 @@ export async function marketplaceRoutes(app: FastifyInstance) {
         totalAmount,
         fgolUsed: body.fgolToUse,
         pixAmount,
-        cashbackEarned: Math.round(marginOffered * config.commission.consumerPct * 100) / 100,
+        cashbackEarned: Math.round(marginOffered * getConsumerPct() * 100) / 100,
       })
     }
 
@@ -162,7 +168,7 @@ export async function marketplaceRoutes(app: FastifyInstance) {
       pixQrCode: (pixQr as any)?.encodedImage,
       pixPayload: (pixQr as any)?.payload,
       status: 'AWAITING_PAYMENT',
-      cashbackEarned: Math.round(marginOffered * config.commission.consumerPct * 100) / 100,
+      cashbackEarned: Math.round(marginOffered * getConsumerPct() * 100) / 100,
     })
   })
 }

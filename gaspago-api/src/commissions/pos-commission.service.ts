@@ -1,9 +1,7 @@
 import { PosPayment } from '@prisma/client'
 import { prisma } from '../shared/prisma'
-import { config } from '../config'
 import { collectAncestorUserIds, getMatrixDepth } from './matrix-placement.service'
-
-const { consumerPct, platformPct, networkPct, credenciadorPct, establishmentBonusPct } = config.commission
+import { getConsumerPct, getPlatformPct, getCredenciadorPct, getLevelPct } from './commission-config.service'
 
 export async function distributeCommissionsPos(pos: PosPayment) {
   const margin = Number(pos.marginOffered)
@@ -24,7 +22,7 @@ export async function distributeCommissionsPos(pos: PosPayment) {
   const balanceUpdates: { userId: string; amount: number; active: boolean }[] = []
 
   if (customer) {
-    const consumerAmount = margin * consumerPct
+    const consumerAmount = margin * getConsumerPct()
     const consumerActive = isActive(customer.affiliateStatus)
     entries.push({
       recipientId: customer.id,
@@ -36,25 +34,26 @@ export async function distributeCommissionsPos(pos: PosPayment) {
     })
     balanceUpdates.push({ userId: customer.id, amount: consumerAmount, active: consumerActive })
 
-    // Walk matrix for network commissions — same depth-based split as orders
-    // (distributeCommissions in commission.service.ts): a fixed share per
-    // configured level, not divided by however many ancestors happen to
-    // exist. Fewer ancestors than MATRIX_DEPTH just means those levels'
-    // share goes unpaid, same as the order flow.
+    // Walk matrix for network commissions — same per-level % as orders
+    // (distributeCommissions in commission.service.ts): each level has its
+    // own independently configured %, not a total split equally. Fewer
+    // ancestors than MATRIX_DEPTH just means those levels go unpaid.
     const depth = getMatrixDepth()
-    const perLevel = (margin * networkPct) / depth
     const ancestorIds = await collectAncestorUserIds(customer.id, depth)
     for (let i = 0; i < ancestorIds.length; i++) {
+      const levelAmount = margin * getLevelPct(i + 1)
+      if (levelAmount <= 0) continue
       const u = await prisma.user.findUnique({ where: { id: ancestorIds[i] } })
       if (!u) continue
       const active = isActive(u.affiliateStatus)
-      entries.push({ recipientId: u.id, posPaymentId: pos.id, amount: perLevel, currency: 'FGOL', status: active ? 'RELEASED' : 'BLOCKED', role: `network_l${i + 1}`, matrixLevel: i + 1 })
-      balanceUpdates.push({ userId: u.id, amount: perLevel, active })
+      entries.push({ recipientId: u.id, posPaymentId: pos.id, amount: levelAmount, currency: 'FGOL', status: active ? 'RELEASED' : 'BLOCKED', role: `network_l${i + 1}`, matrixLevel: i + 1 })
+      balanceUpdates.push({ userId: u.id, amount: levelAmount, active })
     }
   }
 
   // Credenciador
   if (credenciador) {
+    const credenciadorPct = await getCredenciadorPct(credenciador.id)
     const credAmount = margin * credenciadorPct
     const credActive = isActive(credenciador.affiliateStatus)
     entries.push({ recipientId: credenciador.id, posPaymentId: pos.id, amount: credAmount, currency: 'FGOL', status: credActive ? 'RELEASED' : 'BLOCKED', role: 'credenciador' })
@@ -66,7 +65,7 @@ export async function distributeCommissionsPos(pos: PosPayment) {
   }
 
   // Platform cut
-  await prisma.companyRevenue.create({ data: { amount: margin * platformPct, currency: 'BRL', source: 'platform_cut', referenceId: pos.id } })
+  await prisma.companyRevenue.create({ data: { amount: margin * getPlatformPct(), currency: 'BRL', source: 'platform_cut', referenceId: pos.id } })
 
   // Credit every recipient's balance — consumer, network ancestors, credenciador alike.
   for (const { userId, amount, active } of balanceUpdates) {

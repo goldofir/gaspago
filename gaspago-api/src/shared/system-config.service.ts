@@ -124,8 +124,28 @@ export const KNOWN_KEYS: Record<string, { label: string; group: string; sensitiv
   FGOL_MIN_PIX_WITHDRAWAL_BRL: { label: 'Valor mínimo p/ saque via PIX (R$)', group: 'polygon', sensitive: false, hint: 'Abaixo desse valor em FGOL, o usuário não consegue solicitar saque em PIX — só usar no marketplace.' },
 
   // Matriz de afiliados
-  MATRIX_WIDTH: { label: 'Largura da matriz (indicados diretos por linha)', group: 'matrix', sensitive: false, hint: 'Ex.: 5 = matriz 5x5. Ao encher, os próximos indicados transbordam pro indicado mais antigo com vaga.' },
-  MATRIX_DEPTH: { label: 'Profundidade da matriz (níveis que pagam comissão)', group: 'matrix', sensitive: false, hint: 'Quantos níveis acima de quem consumiu recebem comissão de rede. A comissão de rede é dividida igualmente entre esses níveis.' },
+  MATRIX_WIDTH: { label: 'Largura da matriz (indicados diretos por linha)', group: 'matrix', sensitive: false, hint: 'Ex.: 5 = matriz 5x5. Ao encher, os próximos indicados transbordam pro indicado mais antigo com vaga. Quando a matriz inteira enche, o afiliado reentra com um ciclo novo.' },
+  MATRIX_DEPTH: { label: 'Profundidade da matriz (níveis que pagam comissão)', group: 'matrix', sensitive: false, hint: 'Quantos níveis acima de quem consumiu recebem comissão de rede — cada nível usa a % configurada abaixo (Nível 1 = R$/comissão do indicador direto).' },
+
+  // Comissão — cada corte é um % do "margin" (valor que a distribuidora/estabelecimento
+  // ofereceu de cashback). Os cortes + os níveis de rede juntos não precisam somar
+  // exatamente 100% — o que sobra fica retido (não é distribuído a ninguém).
+  CONSUMER_CASHBACK_PCT: { label: 'Cashback do consumidor (%)', group: 'commissions', sensitive: false, hint: 'Ex.: 20 = 20% do margin volta pro próprio consumidor que comprou.' },
+  PLATFORM_CUT_PCT: { label: 'Corte da plataforma (%)', group: 'commissions', sensitive: false, hint: 'Ex.: 30 = 30% do margin vira receita da empresa (CompanyRevenue).' },
+  CREDENCIADOR_PCT: { label: 'Comissão do credenciador — padrão (%)', group: 'commissions', sensitive: false, hint: 'Ex.: 10 = 10% do margin vai pra quem credenciou a distribuidora/estabelecimento envolvido na compra. Qualquer afiliado pode virar credenciador — essa é a taxa base.' },
+  CREDENCIADOR_PREMIUM_PCT: { label: 'Comissão do credenciador — com plano (%)', group: 'commissions', sensitive: false, hint: 'Taxa maior usada quando o credenciador tem assinatura ativa do plano definido em "Slug do plano de credenciador" abaixo. Se vazio ou igual ao padrão, não tem efeito.' },
+  CREDENCIADOR_PLAN_SLUG: { label: 'Slug do plano de credenciador', group: 'commissions', sensitive: false, hint: 'O "slug" (em Planos) da assinatura que dá a taxa premium de credenciador. Ex.: "credenciador-pro". Crie o plano em Monetização → Planos primeiro.' },
+  COMPANY_REFERRAL_CODE: { label: 'Código de indicação da empresa (fallback)', group: 'commissions', sensitive: false, hint: 'Código de indicação (de um usuário real) usado quando alguém se cadastra sem link de indicação — garante que todo mundo entra na rede/matriz, nem que seja embaixo da empresa. Copie o "Seu código de indicação" de uma conta em Afiliados.' },
+  MATRIX_LEVEL_1_PCT: { label: 'Rede — Nível 1 (%)', group: 'commissions', sensitive: false, hint: 'Comissão de rede pro indicador direto (1 nível acima de quem comprou).' },
+  MATRIX_LEVEL_2_PCT: { label: 'Rede — Nível 2 (%)', group: 'commissions', sensitive: false },
+  MATRIX_LEVEL_3_PCT: { label: 'Rede — Nível 3 (%)', group: 'commissions', sensitive: false },
+  MATRIX_LEVEL_4_PCT: { label: 'Rede — Nível 4 (%)', group: 'commissions', sensitive: false },
+  MATRIX_LEVEL_5_PCT: { label: 'Rede — Nível 5 (%)', group: 'commissions', sensitive: false },
+  MATRIX_LEVEL_6_PCT: { label: 'Rede — Nível 6 (%)', group: 'commissions', sensitive: false, hint: 'Só usado se a Profundidade da matriz acima for 6 ou mais.' },
+  MATRIX_LEVEL_7_PCT: { label: 'Rede — Nível 7 (%)', group: 'commissions', sensitive: false, hint: 'Só usado se a Profundidade da matriz acima for 7 ou mais.' },
+  MATRIX_LEVEL_8_PCT: { label: 'Rede — Nível 8 (%)', group: 'commissions', sensitive: false, hint: 'Só usado se a Profundidade da matriz acima for 8 ou mais.' },
+  MATRIX_LEVEL_9_PCT: { label: 'Rede — Nível 9 (%)', group: 'commissions', sensitive: false, hint: 'Só usado se a Profundidade da matriz acima for 9 ou mais.' },
+  MATRIX_LEVEL_10_PCT: { label: 'Rede — Nível 10 (%)', group: 'commissions', sensitive: false, hint: 'Só usado se a Profundidade da matriz acima for 10 ou mais.' },
 
   // Web3Auth
   WEB3AUTH_CLIENT_ID:     { label: 'Web3Auth Client ID',     group: 'web3auth', sensitive: false, hint: 'Encontre em dashboard.web3auth.io → seu projeto → Client ID' },

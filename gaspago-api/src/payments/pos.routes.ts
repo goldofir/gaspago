@@ -9,6 +9,7 @@ import { getOrCreateCustomerId } from './customer.service'
 import { finalizePosPayment } from './pos-payment.service'
 import { config } from '../config'
 import { requireRole } from '../shared/auth.middleware'
+import { getConsumerPct } from '../commissions/commission-config.service'
 
 const secret = new TextEncoder().encode(config.pos.qrJwtSecret)
 
@@ -140,7 +141,7 @@ export async function posRoutes(app: FastifyInstance) {
       status: payment.status,
       fgolUsed: Number(payment.fgolUsed),
       pixAmount: Number(payment.pixAmount),
-      cashbackAmount: Number(payment.marginOffered) * config.commission.consumerPct,
+      cashbackAmount: Number(payment.marginOffered) * getConsumerPct(),
     }
   })
 

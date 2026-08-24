@@ -22,7 +22,8 @@ const GROUP_META: Record<string, { label: string; desc: string; color: string }>
   auth:     { label: 'Autenticação',   desc: 'JWT e chaves de sessão',         color: '#DC2626' },
   email:    { label: 'E-mail SMTP',    desc: 'Servidor de envio',              color: '#0284C7' },
   google:   { label: 'Google OAuth',   desc: 'Login social',                   color: '#4285F4' },
-  matrix:   { label: 'Matriz de Afiliados', desc: 'Tamanho da matriz e comissão de rede', color: '#F59E0B' },
+  matrix:   { label: 'Matriz de Afiliados', desc: 'Largura e profundidade da matriz', color: '#F59E0B' },
+  commissions: { label: 'Comissões', desc: 'Percentuais de cashback, rede e cortes', color: '#059669' },
 }
 
 type Credential = {
