@@ -159,12 +159,18 @@ export default function AdminEcacPage() {
       <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 14, padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
         <Info size={20} color="#2563EB" style={{ flexShrink: 0, marginTop: 2 }} />
         <div>
-          <h4 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#1E40AF' }}>Instrução Normativa RFB nº 1888/2019 (e-CAC)</h4>
-          <p style={{ margin: 0, fontSize: 13, color: '#334155', lineHeight: 1.4 }}>
-            Empresas que movimentam criptoativos (tokens FGOL) acima de <strong>R$ 30.000,00/mês</strong> são obrigadas a declarar mensalmente perante a Receita Federal via e-CAC com certificado e-CNPJ A1.
+          <h4 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#1E40AF' }}>
+            Instrução Normativa RFB nº 1888/2019 (e-CAC) — Residentes no Brasil
+          </h4>
+          <p style={{ margin: '0 0 6px', fontSize: 13, color: '#334155', lineHeight: 1.4 }}>
+            Empresas e usuários com domicilio fiscal no Brasil que movimentam criptoativos acima de <strong>R$ 30.000,00/mês</strong> devem declarar mensalmente à Receita Federal via e-CAC (Art. 6º).
           </p>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', background: 'rgba(5,150,105,0.1)', padding: '2px 8px', borderRadius: 6, display: 'inline-block' }}>
+            🇧🇷 Aplica-se exclusivamente a CPF/CNPJ brasileiros · Estrangeiros (não-residentes) possuem isenção automática.
+          </span>
         </div>
       </div>
+
 
       {/* KPI Cards */}
       <div className="ecac-kpi-grid">

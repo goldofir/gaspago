@@ -8,12 +8,16 @@ export interface In1888ReportSummary {
   requiresDeclaration: boolean
   operationsCount: number
   certificateA1Configured: boolean
+  scope: string
 }
 
 export const In1888EcacService = {
   /**
-   * Calcula a movimentação mensal de Criptoativos (FGOL / Polygon)
+   * Calcula a movimentação mensal de Criptoativos (FGOL / Polygon) de Residentes no Brasil (CPF/CNPJ)
    * e verifica obrigatoriedade de declaração à Receita Federal perante a IN 1888/2019 (> R$ 30k/mês).
+   * 
+   * NOTA FISCAL: Conforme a IN 1888/2019 Art. 6º §2º, a obrigação aplica-se SOMENTE a pessoas físicas (CPF)
+   * ou pessoas jurídicas (CNPJ) residentes/domiciliadas fiscalmente no Brasil. Estrangeiros/não-residentes são ISENTOS.
    */
   async getMonthlySummary(year?: number, month?: number): Promise<In1888ReportSummary> {
     const now = new Date()
@@ -51,8 +55,10 @@ export const In1888EcacService = {
       requiresDeclaration,
       operationsCount: buybacks.length,
       certificateA1Configured: !!certConfig?.value,
+      scope: 'SOMENTE_RESIDENTES_BRASIL_CPF_CNPJ',
     }
   },
+
 
   /**
    * Gera o arquivo XML com o layout oficial exigido pela Receita Federal (IN 1888/2019 - e-CAC)

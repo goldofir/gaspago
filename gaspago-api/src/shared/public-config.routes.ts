@@ -8,6 +8,8 @@ export async function publicConfigRoutes(app: FastifyInstance) {
   app.get('/public-config', async () => {
     return {
       whatsappOrderNumber: SystemConfigService.get('WHATSAPP_ORDER_NUMBER') || null,
+      web3authClientId: SystemConfigService.get('WEB3AUTH_CLIENT_ID') || null,
+      web3authNetwork: SystemConfigService.get('WEB3AUTH_NETWORK') || 'sapphire_devnet',
     }
   })
 }

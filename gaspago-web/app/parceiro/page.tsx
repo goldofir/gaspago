@@ -1,10 +1,13 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { CheckCircle2, Loader2 } from 'lucide-react'
+import Web3AuthConnect, { Web3AuthResult } from '../_components/Web3AuthConnect'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
+
+const TOKEN_KEY_BY_TYPE = { DISTRIBUTOR: 'gp_distributor_token', ESTABLISHMENT: 'gp_pos_token' } as const
 
 const CATEGORY_OPTIONS = [
   { value: 'restaurante', label: 'Restaurante' },
@@ -21,6 +24,7 @@ type LeadType = 'DISTRIBUTOR' | 'ESTABLISHMENT'
 
 function ParceiroForm() {
   const params = useSearchParams()
+  const router = useRouter()
   const initialType: LeadType = params.get('tipo') === 'estabelecimento' ? 'ESTABLISHMENT' : 'DISTRIBUTOR'
 
   const [type, setType] = useState<LeadType>(initialType)
@@ -32,14 +36,24 @@ function ParceiroForm() {
   const [state, setState] = useState('')
   const [category, setCategory] = useState('restaurante')
   const [message, setMessage] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  // Runs right before opening the Web3Auth modal — no point making someone
+  // connect a wallet only to then reject the form for a missing CNPJ.
+  function validateForm(): boolean {
     setError('')
-    setLoading(true)
+    if (!name.trim() || !phone.trim() || cnpj.replace(/\D/g, '').length !== 14) {
+      setError('Preencha nome, telefone e um CNPJ válido (14 dígitos) antes de continuar.')
+      return false
+    }
+    return true
+  }
+
+  async function handleWeb3AuthSuccess(result: Web3AuthResult) {
+    setSubmitting(true)
+    setError('')
     try {
       const res = await fetch(`${API}/partner-leads`, {
         method: 'POST',
@@ -47,24 +61,27 @@ function ParceiroForm() {
         body: JSON.stringify({
           type,
           name,
-          cnpj: cnpj.replace(/\D/g, '') || undefined,
+          cnpj: cnpj.replace(/\D/g, ''),
           phone,
-          email: email || undefined,
+          email: email || result.email || undefined,
           city: city || undefined,
           state: state || undefined,
           category: type === 'ESTABLISHMENT' ? category : undefined,
           message: message || undefined,
+          idToken: result.idToken,
+          walletAddress: result.walletAddress,
         }),
       })
+      const data = await res.json().catch(() => null)
       if (!res.ok) {
-        const data = await res.json().catch(() => null)
         throw new Error(data?.error ?? 'Não foi possível enviar. Tente novamente.')
       }
+      localStorage.setItem(TOKEN_KEY_BY_TYPE[type], data.token)
       setDone(true)
     } catch (err: any) {
       setError(err.message ?? 'Erro ao conectar com o servidor.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -110,21 +127,21 @@ function ParceiroForm() {
           {done ? (
             <div className="pcr-done">
               <CheckCircle2 size={48} className="pcr-done-icon" />
-              <h2 className="pcr-title">Recebemos seu cadastro!</h2>
-              <p className="pcr-desc">Nosso time vai analisar e entrar em contato em breve pelo telefone ou e-mail informado.</p>
+              <h2 className="pcr-title">Cadastro em análise!</h2>
+              <p className="pcr-desc">Sua carteira já foi criada e você está logado. Assim que aprovarmos seus dados, seu painel libera automaticamente — você pode voltar aqui e entrar a qualquer momento.</p>
               <a className="pcr-back" href="/">← Voltar ao início</a>
             </div>
           ) : (
             <>
               <h2 className="pcr-title">Quero ser parceiro</h2>
-              <p className="pcr-desc">Preencha seus dados — analisamos e entramos em contato pra ativar sua conta.</p>
+              <p className="pcr-desc">Preencha seus dados e conecte com Google ou e-mail — sua carteira é criada na hora, sem senha pra guardar.</p>
 
               <div className="pcr-toggle">
                 <button type="button" className={type === 'DISTRIBUTOR' ? 'active' : ''} onClick={() => setType('DISTRIBUTOR')}>Sou distribuidora</button>
                 <button type="button" className={type === 'ESTABLISHMENT' ? 'active' : ''} onClick={() => setType('ESTABLISHMENT')}>Quero anunciar</button>
               </div>
 
-              <form onSubmit={handleSubmit}>
+              <div>
                 <div className="pcr-group">
                   <label className="pcr-label">Nome da empresa</label>
                   <input className="pcr-input" value={name} onChange={e => setName(e.target.value)} required autoFocus />
@@ -142,7 +159,7 @@ function ParceiroForm() {
                 <div className="pcr-row">
                   <div className="pcr-group">
                     <label className="pcr-label">CNPJ</label>
-                    <input className="pcr-input" value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="Opcional" />
+                    <input className="pcr-input" value={cnpj} onChange={e => setCnpj(e.target.value)} required placeholder="00.000.000/0000-00" />
                   </div>
                   <div className="pcr-group">
                     <label className="pcr-label">Telefone</label>
@@ -152,7 +169,7 @@ function ParceiroForm() {
 
                 <div className="pcr-group">
                   <label className="pcr-label">E-mail</label>
-                  <input className="pcr-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Opcional" />
+                  <input className="pcr-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Opcional — pode vir do login" />
                 </div>
 
                 <div className="pcr-row">
@@ -173,10 +190,19 @@ function ParceiroForm() {
 
                 {error && <div className="pcr-error" role="alert">{error}</div>}
 
-                <button type="submit" className="pcr-submit" disabled={loading}>
-                  {loading ? <><Loader2 size={16} className="pcr-spin" /> Enviando…</> : 'Enviar cadastro'}
-                </button>
-              </form>
+                {submitting ? (
+                  <button type="button" className="pcr-submit" disabled>
+                    <Loader2 size={16} className="pcr-spin" /> Enviando…
+                  </button>
+                ) : (
+                  <Web3AuthConnect
+                    label="Continuar e criar carteira"
+                    beforeConnect={validateForm}
+                    onSuccess={handleWeb3AuthSuccess}
+                    onError={setError}
+                  />
+                )}
+              </div>
             </>
           )}
         </div>
