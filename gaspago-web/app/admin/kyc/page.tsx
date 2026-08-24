@@ -233,7 +233,8 @@ export default function AdminKycPage() {
       </div>
 
       {/* Main Table */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflowX: 'auto', boxShadow: 'var(--shadow-sm)' }}>
+
         {loading ? (
           <p style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>Carregando solicitações de KYC…</p>
         ) : items.length === 0 ? (

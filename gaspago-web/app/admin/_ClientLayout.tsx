@@ -75,6 +75,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--ground)' }}>
       <style>{`
         /* ─── Responsive admin shell ─────────────────────────── */
+        html, body {
+          max-width: 100vw;
+          overflow-x: hidden;
+        }
         .admin-sidebar {
           width: 248px;
           background: var(--navy);
@@ -82,12 +86,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           flex-direction: column;
           position: fixed;
           top: 0; left: 0; bottom: 0;
-          z-index: 50;
+          z-index: 1000;
           border-right: 1px solid rgba(255,255,255,.05);
           transition: transform .25s cubic-bezier(.4,0,.2,1);
         }
         .admin-topbar { display: none; }
-        .admin-main   { margin-left: 248px; flex: 1; padding: 36px 40px; min-height: 100vh; }
+        .admin-main   { margin-left: 248px; flex: 1; padding: 36px 40px; min-height: 100vh; max-width: calc(100vw - 248px); box-sizing: border-box; }
         .admin-overlay { display: none; }
 
         @media (max-width: 767px) {
@@ -95,6 +99,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             transform: translateX(-100%);
             box-shadow: 4px 0 32px rgba(0,0,0,.35);
             width: 280px;
+            z-index: 1000;
           }
           .admin-sidebar.open { transform: translateX(0); }
           .admin-topbar {
@@ -107,22 +112,29 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             background: var(--navy);
             border-bottom: 1px solid rgba(255,255,255,.07);
             padding: 0 16px;
-            z-index: 49;
+            z-index: 999;
           }
-          .admin-main  { margin-left: 0; padding: 72px 16px 32px; }
+          .admin-main {
+            margin-left: 0;
+            padding: 72px 16px 32px;
+            max-width: 100vw;
+            overflow-x: hidden;
+            box-sizing: border-box;
+          }
           .admin-overlay {
             display: block;
             position: fixed;
             inset: 0;
             background: rgba(0,0,0,.5);
             backdrop-filter: blur(2px);
-            z-index: 48;
+            z-index: 998;
             opacity: 0;
             pointer-events: none;
             transition: opacity .25s;
           }
           .admin-overlay.open { opacity: 1; pointer-events: auto; }
         }
+
       `}</style>
 
       {/* Overlay (mobile) */}
