@@ -18,6 +18,7 @@ import { plansAdminRoutes } from './plans.admin.routes'
 import { partnerLeadsAdminRoutes } from './partner-leads.admin.routes'
 import { invoicesAdminRoutes } from './invoices.admin.routes'
 import { conversationsAdminRoutes } from './conversations.admin.routes'
+import { companyAdminRoutes } from './company.routes'
 import { requireAdminAuth } from './admin.middleware'
 
 export async function adminRoutes(app: FastifyInstance) {
@@ -29,7 +30,9 @@ export async function adminRoutes(app: FastifyInstance) {
 
   app.register(authRoutes, { prefix: '/auth' })
   app.register(credentialsRoutes, { prefix: '/credentials' })
+  app.register(companyAdminRoutes)
   app.register(emailRoutes)
+
   app.register(storageRoutes)
   app.register(usersRoutes)
   app.register(revenueRoutes)
