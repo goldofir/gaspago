@@ -2,17 +2,24 @@ import { prisma } from '../shared/prisma'
 import { createCustomer } from './asaas.client'
 
 // A guest POS payment (no logged-in consumer) still needs an Asaas customer to
-// bill against — shared across all guests rather than creating one per scan.
-const GUEST_CUSTOMER_CACHE_KEY = 'guest-pos-checkout'
-let guestCustomerId: string | null = null
+// bill against. Asaas requires a CPF/CNPJ on the customer before it will issue a
+// PIX charge, and the CPF is collected fresh at every guest scan (there's no
+// profile to save it to) — so a guest customer can only be safely cached once it
+// actually has a CPF attached. Keyed by CPF rather than a single shared id so two
+// guests with different CPFs don't collide, and a CPF-less scan never poisons
+// the cache for one that does supply it.
+const guestCustomerCache = new Map<string, string>()
 
-async function getOrCreateGuestCustomer(): Promise<string> {
-  if (guestCustomerId) return guestCustomerId
+async function getOrCreateGuestCustomer(cpf?: string): Promise<string> {
+  const cacheKey = cpf ?? 'no-cpf'
+  const cached = guestCustomerCache.get(cacheKey)
+  if (cached) return cached
   const customer = await createCustomer({
     name: 'Cliente balcão (não identificado)',
-    externalReference: GUEST_CUSTOMER_CACHE_KEY,
+    cpfCnpj: cpf,
+    externalReference: `guest-pos-checkout${cpf ? `:${cpf}` : ''}`,
   })
-  guestCustomerId = customer.id
+  guestCustomerCache.set(cacheKey, customer.id)
   return customer.id
 }
 
@@ -22,7 +29,7 @@ async function getOrCreateGuestCustomer(): Promise<string> {
 // just typed at checkout (used only if their profile doesn't have one saved
 // yet; saved to the profile so it's never asked again).
 export async function getOrCreateCustomerId(userId: string | null, cpfFromCheckout?: string): Promise<string> {
-  if (!userId) return getOrCreateGuestCustomer()
+  if (!userId) return getOrCreateGuestCustomer(cpfFromCheckout)
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
   const cpf = user.cpf ?? cpfFromCheckout
