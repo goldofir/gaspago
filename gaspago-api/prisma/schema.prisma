@@ -89,6 +89,17 @@ enum RedeemLock {
   EXPIRED    // 60d+ without consumption — balance forfeited
 }
 
+// Self-service partner signup (distributor/establishment via Web3Auth) creates
+// the User immediately but the Distributor/Establishment record only once
+// SuperAdmin fills in the business terms it can't self-declare (credenciador,
+// cashback%, service address) — see PartnerLead.userId. Existing admin-created
+// portal accounts default to ACTIVE since they were never gated this way.
+enum PortalAccountStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  REJECTED
+}
+
 enum KycLevel {
   LEVEL_0_UNVERIFIED  // Default: no PIX withdrawal allowed
   LEVEL_1_BASIC       // CPF + Phone/Email verified (up to R$ 500/month)
@@ -137,8 +148,9 @@ model User {
   fgolBalance Decimal @default(0) @db.Decimal(20, 8)
   fgolFrozen  Decimal @default(0) @db.Decimal(20, 8) // BLOCKED commissions
 
-  // On-chain address (Web3Auth embedded wallet)
-  walletAddress    String?
+  // On-chain address (Web3Auth embedded wallet) — unique so it can double as a
+  // login lookup key for Web3Auth-authenticated partner accounts (see /auth/web3auth-login).
+  walletAddress    String? @unique
   walletApprovedAt DateTime? // set once the user signs the one-time approve() letting
                               // the treasury pull redeemed FGOL back via transferFrom
 
@@ -161,10 +173,14 @@ model User {
 
   actorType ActorType @default(CONSUMER)
 
-  // Portal login (DISTRIBUTOR / CREDENCIADOR / ESTABLISHMENT staff) — bcrypt hash, never plaintext
+  // Portal login (DISTRIBUTOR / CREDENCIADOR / ESTABLISHMENT staff) — bcrypt hash, never plaintext.
+  // passwordHash is optional because self-service partner signups authenticate
+  // via Web3Auth (walletAddress) instead — see PortalAccountStatus.
   passwordHash    String?
   distributorId   String? // links a DISTRIBUTOR-role User to their Distributor
   establishmentId String? // links an ESTABLISHMENT-role User to their Establishment
+  portalStatus    PortalAccountStatus @default(ACTIVE)
+  partnerLead     PartnerLead?
 
   // Push notifications
   pushToken String?
@@ -710,6 +726,15 @@ model PartnerLead {
 
   status PartnerLeadStatus @default(PENDING)
   notes  String? // internal admin notes while working the lead
+
+  // Set only for leads created via the Web3Auth self-service signup — links to
+  // the User (PENDING_APPROVAL, wallet-authenticated) created at signup time.
+  // Approving this lead is what creates the real Distributor/Establishment
+  // record (needs credenciadorId/cashbackPercent/address that only SuperAdmin
+  // assigns) and flips the linked user to ACTIVE. Null for old-style leads
+  // (no account exists yet — approving those is just a status label today).
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

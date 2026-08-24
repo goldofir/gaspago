@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, KeyRound, Mail, HardDrive, ShieldCheck,
+  LayoutDashboard, KeyRound, Mail, HardDrive, ShieldCheck, FileText,
   Network, TrendingUp, ShoppingBag, ChevronRight, Menu, X, Truck, CreditCard, LogOut, Store, Package, Users, Receipt, MessageCircle,
 } from 'lucide-react'
 import { adminLogout } from '../_components/adminFetch'
@@ -12,6 +12,7 @@ import { adminLogout } from '../_components/adminFetch'
 const nav = [
   { href: '/admin',             label: 'Dashboard',   Icon: LayoutDashboard },
   { href: '/admin/kyc',         label: 'Compliance KYC', Icon: ShieldCheck },
+  { href: '/admin/ecac',        label: 'e-CAC (IN 1888)', Icon: FileText },
   { href: '/admin/credentials', label: 'Credenciais', Icon: KeyRound },
   { href: '/admin/email',       label: 'E-mail',      Icon: Mail },
   { href: '/admin/storage',     label: 'Storage',     Icon: HardDrive },
@@ -26,6 +27,7 @@ const nav = [
   { href: '/admin/subscriptions',  label: 'Assinaturas',  Icon: CreditCard },
   { href: '/admin/plans',          label: 'Planos',       Icon: Package },
 ]
+
 
 
 function NavItems({ path, onNavigate }: { path: string; onNavigate?: () => void }) {

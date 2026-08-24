@@ -22,8 +22,10 @@ import { catalogRoutes } from './marketplace/catalog.routes'
 import { partnerLeadRoutes } from './leads/partner-lead.routes'
 import { kycRoutes } from './kyc/kyc.routes'
 import { kycAdminRoutes } from './admin/kyc.admin.routes'
+import { ecacAdminRoutes } from './ecac/ecac.routes'
 import { publicConfigRoutes } from './shared/public-config.routes'
 import { startSchedulers } from './shared/scheduler'
+
 
 
 async function bootstrap() {
@@ -49,7 +51,9 @@ async function bootstrap() {
   app.register(affiliateRoutes, { prefix: '/affiliates' })
   app.register(kycRoutes, { prefix: '/kyc' })
   app.register(kycAdminRoutes, { prefix: '/admin/kyc' })
+  app.register(ecacAdminRoutes, { prefix: '/admin/ecac' })
   app.register(paymentRoutes, { prefix: '/payments' })
+
   app.register(posRoutes, { prefix: '/pos' })
   app.register(catalogRoutes, { prefix: '/pos' })
   app.register(credenciadorRoutes, { prefix: '/credenciador' })
