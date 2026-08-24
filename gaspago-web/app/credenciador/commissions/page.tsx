@@ -68,8 +68,12 @@ export default function CredenciadorCommissionsPage() {
             <span style={{ fontSize: 16, color: '#F2B825', marginLeft: 6 }}>FGOL</span>
           </p>
         </div>
-        <button style={{ padding: '12px 22px', borderRadius: 10, background: 'var(--flame)', color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}>
-          Solicitar Saque
+        <button
+          disabled
+          title="Saque via PIX ainda não disponível — em breve"
+          style={{ padding: '12px 22px', borderRadius: 10, background: 'var(--border)', color: 'var(--muted)', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'not-allowed' }}
+        >
+          Solicitar Saque (em breve)
         </button>
       </div>
 

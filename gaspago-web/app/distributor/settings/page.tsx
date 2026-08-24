@@ -80,16 +80,17 @@ export default function DistributorSettingsPage() {
       {/* Notifications */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginBottom: 24, boxShadow: 'var(--shadow-sm)' }}>
         <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 14 }}>Notificações</h2>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'not-allowed' }} title="Preferência de notificação ainda não é salva no servidor — em breve">
           <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(59,130,246,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Bell size={15} color="#3B82F6" />
           </div>
-          <span style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500, flex: 1 }}>Receber notificações de novos pedidos</span>
+          <span style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500, flex: 1 }}>Receber notificações de novos pedidos (em breve)</span>
           <input
             type="checkbox"
             checked={notifications}
+            disabled
             onChange={e => setNotifications(e.target.checked)}
-            style={{ width: 18, height: 18, accentColor: 'var(--flame)', cursor: 'pointer' }}
+            style={{ width: 18, height: 18, accentColor: 'var(--flame)', cursor: 'not-allowed' }}
           />
         </label>
       </div>

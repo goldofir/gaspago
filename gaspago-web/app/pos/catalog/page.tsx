@@ -99,12 +99,14 @@ export default function PosCatalogPage() {
   }
 
   async function deleteItem(item: CatalogItem) {
-    if (!window.confirm(`Remover "${item.name}" do catálogo?`)) return
+    // DELETE is a soft-delete on the API (isAvailable: false) — GET /pos/me/catalog still
+    // returns the row, so reflect that here instead of removing it (it would reappear on reload).
+    if (!window.confirm(`Ocultar "${item.name}" do catálogo? Ele deixará de aparecer no marketplace.`)) return
     setBusyId(item.id)
     try {
       const res = await portalFetch(TOKEN_KEY, `${API}/pos/me/catalog/${item.id}`, { method: 'DELETE' })
       if (res.ok) {
-        setItems(prev => prev.filter(i => i.id !== item.id))
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, isAvailable: false } : i))
       }
     } finally {
       setBusyId(null)
