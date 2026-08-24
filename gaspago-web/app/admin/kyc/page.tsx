@@ -196,12 +196,16 @@ export default function AdminKycPage() {
             margin-bottom: 16px !important;
           }
           .kyc-kpi-card {
-            padding: 12px 14px !important;
+            padding: 10px 12px !important;
+          }
+          .kyc-kpi-card span {
+            font-size: 10.5px !important;
           }
           .kyc-kpi-card p {
-            font-size: 20px !important;
+            font-size: 16px !important;
           }
         }
+
       `}</style>
 
       {/* KPI Cards */}

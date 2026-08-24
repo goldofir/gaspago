@@ -354,14 +354,33 @@ export default function OrdersPage() {
           }
 
           .stat-card {
-            padding: 12px 14px !important;
-            gap: 10px !important;
+            padding: 10px 12px !important;
+            gap: 8px !important;
             min-width: 0 !important;
+            border-radius: 12px !important;
           }
 
-          .stat-card p {
-            font-size: 20px !important;
+          .stat-card > div:first-child {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
           }
+
+          .stat-card > div:first-child svg {
+            width: 16px !important;
+            height: 16px !important;
+          }
+
+          .stat-card p:first-child {
+            font-size: 10.5px !important;
+            line-height: 1.2 !important;
+          }
+
+          .stat-card p:last-child {
+            font-size: 18px !important;
+            margin-top: 2px !important;
+          }
+
 
           .filter-bar {
             flex-direction: column;
