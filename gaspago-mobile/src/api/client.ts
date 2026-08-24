@@ -200,6 +200,33 @@ export interface Commission {
 export const getCommissions = (userId: string): Promise<Commission[]> =>
   apiClient.get(`/affiliates/${userId}/commissions`).then((r) => r.data);
 
+// ─── FGOL Statement ──────────────────────────────────────────────────────────
+
+export interface FgolStatementEntry {
+  id: string;
+  amount: number;
+  currency: 'BRL' | 'FGOL';
+  status: 'PENDING' | 'RELEASED' | 'BLOCKED' | 'EXPIRED' | 'SETTLED';
+  role: string;
+  matrixLevel: number | null;
+  expiresAt: string | null;
+  expiredAt: string | null;
+  blockedAt: string | null;
+  createdAt: string;
+}
+
+export interface FgolStatement {
+  summary: {
+    available: number;
+    frozen: number;
+    affiliateStatus: 'ACTIVE' | 'BLOCKED' | 'EXPIRED';
+  };
+  items: FgolStatementEntry[];
+}
+
+export const getFgolStatement = (userId: string): Promise<FgolStatement> =>
+  apiClient.get(`/affiliates/${userId}/statement`).then((r) => r.data);
+
 // ─── POS Payments ─────────────────────────────────────────────────────────────
 
 export interface PosPaymentResponse {

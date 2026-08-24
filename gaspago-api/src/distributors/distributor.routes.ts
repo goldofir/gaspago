@@ -158,12 +158,17 @@ export async function distributorRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Pedido não encontrado nesta distribuidora.' })
     }
     const order = await prisma.order.findUnique({ where: { id: orderId } })
-    if (status === 'DELIVERED' && order) {
-      // Same commission/notification trigger as POST /orders/:id/delivered — the distributor
-      // portal was updating status without ever paying out cashback for it.
+    if (!order) return reply.status(404).send({ error: 'Pedido não encontrado.' })
+
+    if (status === 'CONFIRMED') {
+      NotificationService.sendToUser(order.customerId, 'Pedido confirmado! 🎉', 'Sua distribuidora aceitou seu pedido. Prepare-se para receber!', { orderId }).catch(() => {})
+    } else if (status === 'IN_DELIVERY') {
+      NotificationService.sendToUser(order.customerId, 'Saiu para entrega! 🚚', 'Seu gás está a caminho. Aguarde na entrada!', { orderId }).catch(() => {})
+    } else if (status === 'DELIVERED') {
       distributeCommissions(orderId).catch(err => req.log.error({ err }, 'Commission distribution failed'))
-      NotificationService.sendToUser(order.customerId, 'Entrega confirmada!', 'Seu gás chegou. Aproveite!', { orderId }).catch(() => {})
+      NotificationService.sendToUser(order.customerId, 'Entrega confirmada! ✅', 'Seu gás chegou. Suas comissões FGOL foram liberadas!', { orderId }).catch(() => {})
     }
+
     return order
   })
 

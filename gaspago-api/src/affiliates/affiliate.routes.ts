@@ -91,6 +91,57 @@ export async function affiliateRoutes(app: FastifyInstance) {
     })
   })
 
+  // GET /affiliates/:id/statement — FGOL statement with expiry info (mobile wallet screen)
+  app.get('/:id/statement', { preHandler: requireAuth }, async (req, reply) => {
+    if (!requireSelfOrAdmin(req, reply)) return
+    const { id } = req.params as { id: string }
+
+    const [user, entries] = await Promise.all([
+      prisma.user.findUniqueOrThrow({
+        where: { id },
+        select: { fgolBalance: true, fgolFrozen: true, affiliateStatus: true },
+      }),
+      prisma.commissionLedger.findMany({
+        where: { recipientId: id },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          status: true,
+          role: true,
+          matrixLevel: true,
+          expiresAt: true,
+          expiredAt: true,
+          blockedAt: true,
+          createdAt: true,
+        },
+      }),
+    ])
+
+    const summary = {
+      available: Number(user.fgolBalance),
+      frozen: Number(user.fgolFrozen),
+      affiliateStatus: user.affiliateStatus,
+    }
+
+    const items = entries.map(e => ({
+      id: e.id,
+      amount: Number(e.amount),
+      currency: e.currency,
+      status: e.status,
+      role: e.role,
+      matrixLevel: e.matrixLevel,
+      expiresAt: e.expiresAt,
+      expiredAt: e.expiredAt,
+      blockedAt: e.blockedAt,
+      createdAt: e.createdAt,
+    }))
+
+    return { summary, items }
+  })
+
   // GET /affiliates/:id/network — matrix tree (SuperAdmin only)
   app.get('/:id/network', { preHandler: requireRole('SUPERADMIN', 'ADMIN') }, async (req) => {
     const { id } = req.params as { id: string }

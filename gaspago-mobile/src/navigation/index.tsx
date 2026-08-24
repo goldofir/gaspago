@@ -8,6 +8,7 @@ import { PhoneScreen } from '@/screens/auth/PhoneScreen';
 import { OtpScreen } from '@/screens/auth/OtpScreen';
 import { HomeScreen } from '@/screens/home/HomeScreen';
 import { WalletScreen } from '@/screens/wallet/WalletScreen';
+import { FgolStatementScreen } from '@/screens/wallet/FgolStatementScreen';
 import { OrderGasScreen } from '@/screens/order/OrderGasScreen';
 import { OrderConfirmScreen } from '@/screens/order/OrderConfirmScreen';
 import { MarketplaceScreen } from '@/screens/marketplace/MarketplaceScreen';
@@ -43,6 +44,7 @@ export type MainStackParamList = {
   };
   PosScanner: undefined;
   MatrixNetwork: undefined;
+  FgolStatement: undefined;
   EstablishmentList: { category: string; categoryLabel: string };
   EstablishmentDetail: { establishmentId: string };
 };
@@ -139,6 +141,11 @@ export function MainNavigator() {
       <MainStack.Screen
         name="MatrixNetwork"
         component={MatrixNetworkScreen}
+        options={{ presentation: 'card' }}
+      />
+      <MainStack.Screen
+        name="FgolStatement"
+        component={FgolStatementScreen}
         options={{ presentation: 'card' }}
       />
       <MainStack.Screen

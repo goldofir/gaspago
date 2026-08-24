@@ -6,11 +6,15 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getWallet, getCommissions, Commission } from '@/api/client';
 import { useAuthStore } from '@/store/auth.store';
+import type { MainStackParamList } from '@/navigation';
 
 const FLAME = '#FF6524';
 const NAVY = '#0A1628';
@@ -80,6 +84,7 @@ function TxRow({ tx }: { tx: Commission }) {
 
 export function WalletScreen() {
   const { user } = useAuthStore();
+  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -177,7 +182,12 @@ export function WalletScreen() {
 
         {/* ── Commission history ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Histórico de comissões</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Histórico de comissões</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('FgolStatement')}>
+              <Text style={styles.sectionLink}>Extrato completo →</Text>
+            </TouchableOpacity>
+          </View>
 
           {loadingCommissions && commissions.length === 0 ? (
             <ActivityIndicator color={FLAME} style={{ marginTop: 24 }} />
@@ -286,11 +296,21 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   section: { paddingHorizontal: 20 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
     color: NAVY,
-    marginBottom: 14,
+  },
+  sectionLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: FLAME,
   },
   txRow: {
     flexDirection: 'row',
