@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { prisma } from '../shared/prisma'
 import { createSubAccount } from '../payments/asaas.client'
 import { requireRole } from '../shared/auth.middleware'
+import { distributeCommissions } from '../commissions/commission.service'
+import { NotificationService } from '../notifications/notification.service'
 
 const CreateDistributorSchema = z.object({
   name: z.string(),
@@ -150,12 +152,19 @@ export async function distributorRoutes(app: FastifyInstance) {
 
     const { count } = await prisma.order.updateMany({
       where: { id: orderId, distributorId: distId },
-      data: { status: status as any },
+      data: { status: status as any, ...(status === 'DELIVERED' && { deliveredAt: new Date() }) },
     })
     if (count === 0) {
       return reply.status(404).send({ error: 'Pedido não encontrado nesta distribuidora.' })
     }
-    return prisma.order.findUnique({ where: { id: orderId } })
+    const order = await prisma.order.findUnique({ where: { id: orderId } })
+    if (status === 'DELIVERED' && order) {
+      // Same commission/notification trigger as POST /orders/:id/delivered — the distributor
+      // portal was updating status without ever paying out cashback for it.
+      distributeCommissions(orderId).catch(err => req.log.error({ err }, 'Commission distribution failed'))
+      NotificationService.sendToUser(order.customerId, 'Entrega confirmada!', 'Seu gás chegou. Aproveite!', { orderId }).catch(() => {})
+    }
+    return order
   })
 
   // PATCH /distributors/me/products/:productId — update product
