@@ -36,7 +36,15 @@ export async function subscriptionsAdminRoutes(app: FastifyInstance) {
       select: { id: true, name: true, phone: true, email: true },
     })
     const userMap: Record<string, any> = Object.fromEntries(users.map((u: any) => [u.id, u]))
-    const result = subscriptions.map((s: any) => ({ ...s, user: userMap[s.userId] ?? null }))
+    const now = new Date()
+    // Model only stores isActive/expiresAt — derive the status badge the admin UI expects
+    // (same ACTIVE/CANCELLED mapping as GET /subscriptions/me, plus EXPIRED for stale isActive rows).
+    const result = subscriptions.map((s: any) => ({
+      ...s,
+      status: !s.isActive ? 'CANCELLED' : s.expiresAt && s.expiresAt < now ? 'EXPIRED' : 'ACTIVE',
+      asaasSubscriptionId: s.asaasSubId,
+      user: userMap[s.userId] ?? null,
+    }))
 
     return reply.send({ subscriptions: result })
   })
