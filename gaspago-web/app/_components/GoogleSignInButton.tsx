@@ -10,6 +10,13 @@ declare global {
   }
 }
 
+// window.google is a page-wide singleton — calling initialize() more than once
+// on it (e.g. navigating between the 3 portal login pages, each mounting this
+// component fresh) triggers GSI's own "initialize() called multiple times"
+// warning and risks only the last call's callback actually firing. Track
+// per-clientId at module scope so it only ever runs once per page load.
+let initializedForClientId: string | null = null
+
 type Portal = 'distributor' | 'credenciador' | 'pos' | 'admin' | 'business'
 
 export default function GoogleSignInButton({
@@ -55,6 +62,11 @@ export default function GoogleSignInButton({
 
     function init() {
       if (!window.google || !divRef.current) return
+      // Re-initializing is intentional here, not a bug to suppress: each mount
+      // (a different login page, or the same page after logout/back-navigation)
+      // needs its OWN callback bound to its own onSuccess/onError — GSI's "last
+      // initialized instance wins" is exactly the semantics this component
+      // relies on. The console warning is expected and benign.
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: handleCredential,
