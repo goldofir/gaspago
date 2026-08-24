@@ -15,6 +15,7 @@ import { distributorsAdminRoutes } from './distributors.admin.routes'
 import { subscriptionsAdminRoutes } from './subscriptions.admin.routes'
 import { establishmentsAdminRoutes } from './establishments.admin.routes'
 import { plansAdminRoutes } from './plans.admin.routes'
+import { partnerLeadsAdminRoutes } from './partner-leads.admin.routes'
 import { requireAdminAuth } from './admin.middleware'
 
 export async function adminRoutes(app: FastifyInstance) {
@@ -35,6 +36,7 @@ export async function adminRoutes(app: FastifyInstance) {
   app.register(subscriptionsAdminRoutes)
   app.register(establishmentsAdminRoutes)
   app.register(plansAdminRoutes)
+  app.register(partnerLeadsAdminRoutes)
 
   // POST /admin/notifications/broadcast
   app.post('/notifications/broadcast', async (req, reply) => {

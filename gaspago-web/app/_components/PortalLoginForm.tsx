@@ -15,8 +15,19 @@ const PORTAL_META: Record<PortalKind, { label: string; accent: string; redirect:
   pos:          { label: 'Balcão / Estabelecimento', accent: '#10B981', redirect: '/pos',          tokenKey: 'gp_pos_token',          placeholder: 'caixa@estabelecimento.com' },
 }
 
-export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
-  const meta = PORTAL_META[portal]
+// Maps whatever role the backend actually returns to where that account belongs —
+// used in unified mode (no `portal` prop), where the login itself decides the
+// destination instead of the user having to pick the right URL beforehand.
+const ROLE_META: Record<string, { redirect: string; tokenKey: string }> = {
+  DISTRIBUTOR:   { redirect: '/distributor',  tokenKey: 'gp_distributor_token' },
+  CREDENCIADOR:  { redirect: '/credenciador', tokenKey: 'gp_credenciador_token' },
+  ESTABLISHMENT: { redirect: '/pos',          tokenKey: 'gp_pos_token' },
+}
+
+const UNIFIED_META = { label: 'Painel de Parceiros', accent: '#FF6524', redirect: '', tokenKey: '', placeholder: 'voce@empresa.com' }
+
+export default function PortalLoginForm({ portal }: { portal?: PortalKind }) {
+  const meta = portal ? PORTAL_META[portal] : UNIFIED_META
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,14 +35,29 @@ export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  function handleGoogleSuccess(data: { token: string; role: string }) {
-    const expectedRole = ({ distributor: 'DISTRIBUTOR', credenciador: 'CREDENCIADOR', pos: 'ESTABLISHMENT' } as const)[portal]
-    if (data.role !== expectedRole) {
-      setError('Esta conta não tem acesso a este painel')
-      return
+  function routeByRole(role: string, token: string): boolean {
+    if (portal) {
+      const expectedRole = ({ distributor: 'DISTRIBUTOR', credenciador: 'CREDENCIADOR', pos: 'ESTABLISHMENT' } as const)[portal]
+      if (role !== expectedRole) {
+        setError('Esta conta não tem acesso a este painel')
+        return false
+      }
+      localStorage.setItem(meta.tokenKey, token)
+      router.push(meta.redirect)
+      return true
     }
-    localStorage.setItem(meta.tokenKey, data.token)
-    router.push(meta.redirect)
+    const target = ROLE_META[role]
+    if (!target) {
+      setError('Esta conta não tem acesso a nenhum painel.')
+      return false
+    }
+    localStorage.setItem(target.tokenKey, token)
+    router.push(target.redirect)
+    return true
+  }
+
+  function handleGoogleSuccess(data: { token: string; role: string }) {
+    routeByRole(data.role, data.token)
   }
 
   function handleGoogleError(message: string) {
@@ -60,13 +86,7 @@ export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
       }
 
       const data = await res.json()
-      if (data.role !== ({ distributor: 'DISTRIBUTOR', credenciador: 'CREDENCIADOR', pos: 'ESTABLISHMENT' } as const)[portal]) {
-        setError('Esta conta não tem acesso a este painel')
-        return
-      }
-
-      localStorage.setItem(meta.tokenKey, data.token)
-      router.push(meta.redirect)
+      routeByRole(data.role, data.token)
     } catch {
       setError('Erro ao conectar com o servidor')
     } finally {
@@ -180,7 +200,7 @@ export default function PortalLoginForm({ portal }: { portal: PortalKind }) {
               <span className="plf-divider-line" />
             </div>
 
-            <GoogleSignInButton portal={portal} onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+            <GoogleSignInButton portal={portal ?? 'business'} onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
           </div>
 
           <p className="plf-footer">Gás Pago V3 · Acesso restrito a contas autorizadas</p>

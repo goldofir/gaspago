@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-type Portal = 'distributor' | 'credenciador' | 'pos' | 'admin'
+type Portal = 'distributor' | 'credenciador' | 'pos' | 'admin' | 'business'
 
 export default function GoogleSignInButton({
   portal,

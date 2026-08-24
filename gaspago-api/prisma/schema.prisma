@@ -583,3 +583,40 @@ model CompanyRevenue {
 
   createdAt DateTime @default(now())
 }
+
+// ─── PARTNER SIGNUP LEADS ──────────────────────────────────────────────────────
+// Public "quero ser distribuidora" / "quero anunciar" forms on the site submit
+// here instead of just redirecting to WhatsApp — gives SuperAdmin a real,
+// reviewable queue instead of messages that only live in someone's phone.
+
+enum PartnerLeadType {
+  DISTRIBUTOR
+  ESTABLISHMENT
+}
+
+enum PartnerLeadStatus {
+  PENDING
+  CONTACTED
+  APPROVED
+  REJECTED
+}
+
+model PartnerLead {
+  id   String          @id @default(cuid())
+  type PartnerLeadType
+
+  name     String
+  cnpj     String?
+  phone    String
+  email    String?
+  city     String?
+  state    String?
+  category String? // establishment segment (restaurante, farmacia, etc.) — DISTRIBUTOR leads leave this null
+  message  String?
+
+  status PartnerLeadStatus @default(PENDING)
+  notes  String? // internal admin notes while working the lead
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

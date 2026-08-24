@@ -11,14 +11,18 @@ const bodySchema = z.object({
   // belong to a user with the matching role (provisioned via /admin/portal-accounts
   // or the admin's own account). Google is an alternative credential, not a way
   // to self-register into a business portal.
-  portal: z.enum(['distributor', 'credenciador', 'pos', 'admin']).optional(),
+  // 'business' = the unified partner login (single page, any of the 3 B2B roles) —
+  // matches whichever role the account actually has, same as email/password login
+  // at /auth/portal-login (which never scoped by a single expected role either).
+  portal: z.enum(['distributor', 'credenciador', 'pos', 'admin', 'business']).optional(),
 })
 
-const PORTAL_ROLES: Record<'distributor' | 'credenciador' | 'pos' | 'admin', string[]> = {
+const PORTAL_ROLES: Record<'distributor' | 'credenciador' | 'pos' | 'admin' | 'business', string[]> = {
   distributor: ['DISTRIBUTOR'],
   credenciador: ['CREDENCIADOR'],
   pos: ['ESTABLISHMENT'],
   admin: ['SUPERADMIN', 'ADMIN'],
+  business: ['DISTRIBUTOR', 'CREDENCIADOR', 'ESTABLISHMENT'],
 }
 
 export async function googleAuthRoutes(app: FastifyInstance) {
