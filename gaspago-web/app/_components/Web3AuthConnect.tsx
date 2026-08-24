@@ -108,20 +108,22 @@ export default function Web3AuthConnect({
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={loading}
-      style={{
-        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        padding: '11px', borderRadius: 10, border: '1.5px solid #E2E8F0', background: '#fff',
-        color: '#0F2040', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13.5,
-        cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
-      }}
-    >
-      {loading ? <Loader2 size={16} className="w3a-spin" /> : <Wallet size={16} />}
-      {loading ? 'Conectando…' : label}
+    <>
       <style>{`.w3a-spin { animation: w3a-spin .75s linear infinite; } @keyframes w3a-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-    </button>
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={loading}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          padding: '11px', borderRadius: 10, border: '1.5px solid #E2E8F0', background: '#fff',
+          color: '#0F2040', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13.5,
+          cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
+        }}
+      >
+        {loading ? <Loader2 size={16} className="w3a-spin" /> : <Wallet size={16} />}
+        {loading ? 'Conectando…' : label}
+      </button>
+    </>
   )
 }
