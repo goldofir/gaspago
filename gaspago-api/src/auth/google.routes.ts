@@ -143,9 +143,12 @@ export async function googleAuthRoutes(app: FastifyInstance) {
         name: user.name,
         email: user.email,
         avatarUrl: (user as any).avatarUrl,
+        plan: user.plan,
+        referral_code: user.referralCode,
         actorType: user.actorType,
         affiliateStatus: user.affiliateStatus,
-        fgolBalance: user.fgolBalance,
+        fgol_balance: user.fgolBalance,
+        fgol_frozen: user.fgolFrozen,
       },
     })
   })

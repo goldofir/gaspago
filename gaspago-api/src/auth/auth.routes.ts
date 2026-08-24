@@ -77,15 +77,23 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       { expiresIn: '30d' },
     )
 
+    // Field names must match the mobile app's VerifyOtpResponse/User types
+    // exactly (access_token/token_type, snake_case FGOL fields) — it previously
+    // sent "token" instead of "access_token", so setToken(res.access_token)
+    // always set the token to undefined and login silently never completed.
     return reply.send({
-      token,
+      access_token: token,
+      token_type: 'Bearer',
       user: {
         id: user.id,
         phone: user.phone,
         name: user.name,
+        plan: user.plan,
+        referral_code: user.referralCode,
         actorType: user.actorType,
         affiliateStatus: user.affiliateStatus,
-        fgolBalance: user.fgolBalance,
+        fgol_balance: user.fgolBalance,
+        fgol_frozen: user.fgolFrozen,
       },
     })
   })
@@ -104,6 +112,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         name: true,
         email: true,
         cpf: true,
+        plan: true,
+        referralCode: true,
         actorType: true,
         affiliateStatus: true,
         fgolBalance: true,
@@ -113,6 +123,15 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       },
     })
 
-    return reply.send(user)
+    // Mobile's User type reads plan/referral_code/fgol_balance/fgol_frozen —
+    // this used to omit plan/referralCode entirely and return the FGOL fields
+    // camelCase, so the app's plan badge and referral card always showed the
+    // FREE/"—" fallback regardless of the account's real state.
+    return reply.send({
+      ...user,
+      referral_code: user.referralCode,
+      fgol_balance: user.fgolBalance,
+      fgol_frozen: user.fgolFrozen,
+    })
   })
 }

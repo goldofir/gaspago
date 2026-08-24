@@ -97,6 +97,9 @@ export function OrderConfirmScreen() {
         deliveryAddress: trimmedAddress,
         deliveryPostalCode: trimmedPostalCode,
         paymentMethod,
+        // "Saldo FGOL" means pay the whole order with FGOL — without this the
+        // backend defaulted fgolToUse to 0 and charged the full amount via PIX.
+        fgolToUse: paymentMethod === 'FGOL_BALANCE' ? subtotal : undefined,
         cpf: trimmedCpf.length === 11 ? trimmedCpf : undefined,
       });
       if (response.pixQrCode || response.pixPayload) {
