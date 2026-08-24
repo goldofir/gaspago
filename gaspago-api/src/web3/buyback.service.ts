@@ -1,11 +1,18 @@
 import { ethers } from 'ethers'
 import { prisma } from '../shared/prisma'
-import { config } from '../config'
+import { SystemConfigService } from '../shared/system-config.service'
 
 const FGOL_ABI = ['function burn(uint256 amount) external']
 
 export async function executeBuyback(brlSpent: number, fgolAmount: number): Promise<void> {
-  const { rpcUrl, fgolContract, platformWalletKey } = config.polygon
+  // Reads live from SystemConfigService, not config.polygon — that object reads
+  // process.env directly, which SuperAdmin never populates (same class of bug
+  // already found and fixed for CONEXBOT_WEBHOOK_SECRET and the wallet-treasury
+  // service). Without this fix, executeBuyback always hit the "not configured"
+  // branch below even after PLATFORM_WALLET_KEY was set in SuperAdmin.
+  const rpcUrl = SystemConfigService.get('POLYGON_RPC_URL') || 'https://polygon-rpc.com'
+  const fgolContract = SystemConfigService.get('FGOL_CONTRACT')
+  const platformWalletKey = SystemConfigService.get('PLATFORM_WALLET_KEY')
 
   if (!rpcUrl || !fgolContract || !platformWalletKey) {
     console.warn('[buyback] Polygon credentials not configured. Skipping on-chain transaction.')

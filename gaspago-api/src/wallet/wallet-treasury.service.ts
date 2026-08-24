@@ -1,6 +1,11 @@
+import { ethers } from 'ethers'
 import { prisma } from '../shared/prisma'
 import { SystemConfigService } from '../shared/system-config.service'
-import { config } from '../config'
+
+const FGOL_ABI = [
+  'function transfer(address to, uint256 amount) external returns (bool)',
+  'function transferFrom(address from, address to, uint256 amount) external returns (bool)',
+]
 
 // FGOL and BRL are tracked 1:1 throughout the commission engine (see scheduler.ts)
 // — no price oracle needed to compare a BRL threshold against an FGOL amount.
@@ -20,19 +25,23 @@ export function getMinPixWithdrawal(): number {
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_MIN_PIX_WITHDRAWAL_BRL
 }
 
-function isTreasuryConfigured(): boolean {
-  return !!(config.polygon.rpcUrl && config.polygon.fgolContract && config.polygon.platformWalletKey)
+// Reads live from SystemConfigService (the encrypted DB store SuperAdmin writes
+// to), not the static config.polygon object — that object reads process.env
+// directly, which is never populated from SuperAdmin the way every other
+// credential in this app is. Using it here would make isTreasuryConfigured()
+// always report "not configured" even after the key is set (same bug already
+// found and fixed for CONEXBOT_WEBHOOK_SECRET).
+function getTreasuryConfig() {
+  return {
+    rpcUrl: SystemConfigService.get('POLYGON_RPC_URL') || 'https://polygon-rpc.com',
+    fgolContract: SystemConfigService.get('FGOL_CONTRACT'),
+    platformWalletKey: SystemConfigService.get('PLATFORM_WALLET_KEY'),
+  }
 }
 
-/**
- * Queues a treasury -> user on-chain transfer. Never sends the transaction inline —
- * a separate worker (processOnChainQueue) drains PENDING rows. Called by the batch
- * cron once a user's pendingOnChainAmount crosses the configured threshold.
- */
-async function queueTreasuryPush(userId: string, amount: number, reason: string, referenceId?: string) {
-  return prisma.onChainTransfer.create({
-    data: { userId, direction: 'TO_USER', amount, reason, referenceId },
-  })
+function isTreasuryConfigured(): boolean {
+  const { fgolContract, platformWalletKey } = getTreasuryConfig()
+  return !!(fgolContract && platformWalletKey)
 }
 
 /**
@@ -119,14 +128,41 @@ export async function processOnChainQueue(): Promise<{ processed: number; confir
       continue
     }
 
-    // Real Polygon submission (contract.transfer for TO_USER, contract.transferFrom
-    // for FROM_USER) is intentionally not wired yet — this file is safe to ship
-    // without moving real funds. Implementing the actual ethers.Contract calls is
-    // the next step, once PLATFORM_WALLET_KEY is configured and a live test on a
-    // small amount is explicitly approved.
-    console.warn(`[wallet-treasury] on-chain submission not yet implemented — transfer ${transfer.id} left PENDING`)
-    break
+    try {
+      const txHash = await submitTransfer(transfer.direction, transfer.user.walletAddress, Number(transfer.amount))
+      await prisma.onChainTransfer.update({
+        where: { id: transfer.id },
+        data: { status: 'CONFIRMED', txHash, confirmedAt: new Date() },
+      })
+      confirmed++
+    } catch (err: any) {
+      console.error(`[wallet-treasury] transfer ${transfer.id} failed:`, err?.message ?? err)
+      await prisma.onChainTransfer.update({
+        where: { id: transfer.id },
+        data: { status: 'FAILED', error: String(err?.message ?? err).slice(0, 500) },
+      })
+      failed++
+    }
   }
 
   return { processed: pending.length, confirmed, failed }
+}
+
+// Submits the real Polygon transaction and waits for it to be mined. TO_USER
+// sends from the treasury directly; FROM_USER pulls from the user's wallet via
+// the allowance they approved at wallet setup (walletApprovedAt) — the treasury
+// never holds the user's private key, it can only move what was approved.
+async function submitTransfer(direction: 'TO_USER' | 'FROM_USER', walletAddress: string, amount: number): Promise<string> {
+  const { rpcUrl, fgolContract, platformWalletKey } = getTreasuryConfig()
+  const provider = new ethers.JsonRpcProvider(rpcUrl)
+  const treasuryWallet = new ethers.Wallet(platformWalletKey!, provider)
+  const contract = new ethers.Contract(fgolContract!, FGOL_ABI, treasuryWallet)
+  const amountWei = ethers.parseUnits(amount.toString(), 18)
+
+  const tx = direction === 'TO_USER'
+    ? await contract.transfer(walletAddress, amountWei)
+    : await contract.transferFrom(walletAddress, treasuryWallet.address, amountWei)
+
+  const receipt = await tx.wait()
+  return receipt.hash
 }
