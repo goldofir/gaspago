@@ -192,8 +192,9 @@ export default function AdminKycPage() {
       {/* Main Table */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
         {loading ? (
-          <p style={{ padding: 32, textStyle: 'center', color: 'var(--muted)', fontSize: 14 }}>Carregando solicitações de KYC…</p>
+          <p style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>Carregando solicitações de KYC…</p>
         ) : items.length === 0 ? (
+
           <div style={{ padding: 48, textAlign: 'center' }}>
             <UserCheck size={40} color="var(--muted)" style={{ marginBottom: 12, opacity: .5 }} />
             <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Nenhuma solicitação encontrada</p>
