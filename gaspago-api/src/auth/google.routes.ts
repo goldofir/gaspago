@@ -3,6 +3,7 @@ import { z } from 'zod'
 import axios from 'axios'
 import { prisma } from '../shared/prisma'
 import { SystemConfigService } from '../shared/system-config.service'
+import { placeInMatrix } from '../commissions/matrix-placement.service'
 
 const bodySchema = z.object({
   idToken: z.string(),
@@ -15,6 +16,8 @@ const bodySchema = z.object({
   // matches whichever role the account actually has, same as email/password login
   // at /auth/portal-login (which never scoped by a single expected role either).
   portal: z.enum(['distributor', 'credenciador', 'pos', 'admin', 'business']).optional(),
+  // Consumer signup only — referral code from the ?ref= link that brought them here.
+  ref: z.string().optional(),
 })
 
 const PORTAL_ROLES: Record<'distributor' | 'credenciador' | 'pos' | 'admin' | 'business', string[]> = {
@@ -39,7 +42,7 @@ export async function googleAuthRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'idToken é obrigatório' })
     }
 
-    const { idToken, portal } = parseResult.data
+    const { idToken, portal, ref } = parseResult.data
 
     // 1. Verify token via Google tokeninfo endpoint
     let tokenInfo: Record<string, string>
@@ -128,6 +131,14 @@ export async function googleAuthRoutes(app: FastifyInstance) {
           affiliateStatus: 'ACTIVE',
         },
       })
+
+      if (ref) {
+        const referrer = await prisma.user.findUnique({ where: { referralCode: ref } })
+        if (referrer && referrer.id !== user.id) {
+          await prisma.user.update({ where: { id: user.id }, data: { referredById: referrer.id } })
+          await placeInMatrix(user.id, referrer.id).catch(err => console.error('[matrix] placement failed for', user!.id, err))
+        }
+      }
     }
 
     const token = (app as any).jwt.sign(

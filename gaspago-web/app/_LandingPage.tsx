@@ -361,7 +361,7 @@ export default function Home() {
           <a className="nav-link" href="#distribuidoras" onClick={() => setMenuOpen(false)}>Distribuidoras</a>
           <a className="nav-link" href="#marketplace" onClick={() => setMenuOpen(false)}>Marketplace</a>
           <a className="nav-link" href="/entrar" onClick={() => setMenuOpen(false)}>Entrar</a>
-          <a className="nav-cta" href="#baixar" onClick={() => setMenuOpen(false)}>Baixar o app</a>
+          <a className="nav-cta" href="/cadastro" onClick={() => setMenuOpen(false)}>Criar conta</a>
         </nav>
         <button className="nav-burger" aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'} onClick={() => setMenuOpen(o => !o)}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -385,9 +385,9 @@ export default function Home() {
           </p>
 
           <div className="hero-ctas">
-            <a className="btn-primary" href="#baixar">
+            <a className="btn-primary" href="/cadastro">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
-              Baixar o app
+              Criar conta
             </a>
             {whatsappHref ? (
               <a className="btn-ghost" href={whatsappHref} target="_blank" rel="noopener noreferrer">
@@ -582,12 +582,12 @@ export default function Home() {
         <div className="sec-inner" data-reveal>
           <h2>Acenda o <span style={{ color: 'var(--flame)' }}>Gás Pago</span>.</h2>
           <p className="sec-lead">
-            Grátis para baixar. O primeiro pedido já rende FGOL.
+            Crie sua conta agora — o app vem em breve, mas seu cadastro e sua rede de indicação já podem começar hoje.
           </p>
           <div className="final-ctas">
-            <a className="btn-primary" href="#" aria-disabled="true" title="Em breve nas lojas">
+            <a className="btn-primary" href="/cadastro">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
-              Baixar o app
+              Criar conta
             </a>
             {whatsappHref ? (
               <a className="btn-ghost" href={whatsappHref} target="_blank" rel="noopener noreferrer">Pedir pelo WhatsApp</a>

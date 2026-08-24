@@ -17,14 +17,19 @@ declare global {
 // per-clientId at module scope so it only ever runs once per page load.
 let initializedForClientId: string | null = null
 
-type Portal = 'distributor' | 'credenciador' | 'pos' | 'admin' | 'business'
+type Portal = 'distributor' | 'credenciador' | 'pos' | 'admin' | 'business' | 'consumer'
 
 export default function GoogleSignInButton({
   portal,
+  referralCode,
   onSuccess,
   onError,
 }: {
   portal: Portal
+  // Referral code from a ?ref= link — consumer signup only, ignored otherwise.
+  // Named referralCode, not `ref` — `ref` is a reserved prop name React
+  // intercepts before it ever reaches a plain function component's props.
+  referralCode?: string
   onSuccess: (data: { token: string; role: string }) => void
   onError: (message: string) => void
 }) {
@@ -47,7 +52,14 @@ export default function GoogleSignInButton({
         const res = await fetch(`${API}/auth/google`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken: response.credential, portal }),
+          body: JSON.stringify({
+            idToken: response.credential,
+            // 'consumer' isn't a real backend portal value — omitting the
+            // field is what routes google.routes.ts into its consumer/mobile
+            // auto-create branch, same as the mobile app never sending one.
+            portal: portal === 'consumer' ? undefined : portal,
+            ref: portal === 'consumer' ? referralCode : undefined,
+          }),
         })
         const data = await res.json()
         if (!res.ok) {

@@ -4,6 +4,7 @@ import Redis from 'ioredis'
 import { OtpService } from './otp.service'
 import { sendText } from '../whatsapp/client'
 import { prisma } from '../shared/prisma'
+import { placeInMatrix } from '../commissions/matrix-placement.service'
 
 const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379')
 
@@ -17,6 +18,7 @@ const requestBodySchema = z.object({
 const verifyBodySchema = z.object({
   phone: z.string().regex(/^\d{10,13}$/),
   code: z.string(),
+  ref: z.string().optional(),
 })
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
@@ -55,22 +57,31 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(400).send({ error: parseResult.error.flatten() })
     }
 
-    const { phone, code } = parseResult.data
+    const { phone, code, ref } = parseResult.data
 
     const valid = await OtpService.verify(phone, code)
     if (!valid) {
       return reply.status(401).send({ error: 'Código inválido ou expirado' })
     }
 
-    const user = await prisma.user.upsert({
-      where: { phone },
-      update: {},
-      create: {
-        phone,
-        actorType: 'CONSUMER',
-        affiliateStatus: 'ACTIVE',
-      },
-    })
+    // upsert can't tell us create-vs-existing, and matrix placement (like the
+    // referral link itself) only makes sense on first signup — logging back
+    // in with a stale ?ref= in the URL should never re-parent an existing user.
+    let user = await prisma.user.findUnique({ where: { phone } })
+    const isNewUser = !user
+    if (!user) {
+      user = await prisma.user.create({
+        data: { phone, actorType: 'CONSUMER', affiliateStatus: 'ACTIVE' },
+      })
+    }
+
+    if (isNewUser && ref) {
+      const referrer = await prisma.user.findUnique({ where: { referralCode: ref } })
+      if (referrer && referrer.id !== user.id) {
+        await prisma.user.update({ where: { id: user.id }, data: { referredById: referrer.id } })
+        await placeInMatrix(user.id, referrer.id).catch(err => console.error('[matrix] placement failed for', user!.id, err))
+      }
+    }
 
     const token = (app as any).jwt.sign(
       { id: user.id, phone: user.phone, role: user.actorType },
