@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { SystemConfigService } from '../shared/system-config.service'
+import { prisma } from '../shared/prisma'
 
 const CONEXBOT_BASE = 'https://app.conext.click/api/v1'
 
@@ -10,12 +11,20 @@ function wa() {
   })
 }
 
+// Persists a copy of every outbound message — previously nothing was ever
+// saved, so there was no conversation history anywhere for support/CRM to
+// look back on. Logging failure never blocks the actual send.
+async function logOutbound(phone: string, text: string) {
+  await prisma.waMessage.create({ data: { phone, direction: 'OUTBOUND', text } }).catch(() => {})
+}
+
 export async function sendText(to: string, body: string) {
   await wa().post('/messages', {
     to,
     type: 'text',
     text: { body },
   })
+  await logOutbound(to, body)
 }
 
 export async function sendList(
@@ -29,6 +38,8 @@ export async function sendList(
     body,
     sections: [{ title: 'Opções', rows: items }],
   })
+  const summary = `${body}\n${items.map(i => `• ${i.title}`).join('\n')}`
+  await logOutbound(to, summary)
 }
 
 export async function sendDistributorOptions(

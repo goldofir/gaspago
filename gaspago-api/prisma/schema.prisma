@@ -586,6 +586,27 @@ model CompanyRevenue {
   createdAt DateTime @default(now())
 }
 
+// ─── WHATSAPP MESSAGE LOG ──────────────────────────────────────────────────────
+// Every inbound/outbound message through the Conexbot integration, persisted —
+// previously nothing was ever saved, so there was no conversation history
+// anywhere. This is the data layer a real CRM view reads from.
+
+enum WaDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model WaMessage {
+  id        String      @id @default(cuid())
+  phone     String
+  direction WaDirection
+  text      String
+  createdAt DateTime    @default(now())
+
+  @@index([phone])
+  @@index([createdAt])
+}
+
 // ─── PARTNER SIGNUP LEADS ──────────────────────────────────────────────────────
 // Public "quero ser distribuidora" / "quero anunciar" forms on the site submit
 // here instead of just redirecting to WhatsApp — gives SuperAdmin a real,

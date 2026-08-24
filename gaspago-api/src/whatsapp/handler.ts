@@ -34,6 +34,9 @@ export async function handleIncomingMessage(event: WAEvent) {
   if (event.type !== 'message') return
 
   const phone = event.from
+  const inboundText = event.listReply ? `[selecionou] ${event.listReply.title}` : (event.text ?? '')
+  await prisma.waMessage.create({ data: { phone, direction: 'INBOUND', text: inboundText } }).catch(() => {})
+
   const session = await getSession(phone)
 
   if (session.step === 'idle' || event.text?.toLowerCase().includes('gas') || event.text?.toLowerCase().includes('gás')) {
