@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../shared/prisma'
 import { verifyWeb3AuthToken } from '../auth/web3auth.service'
+import { placeInMatrix, resolveReferrer } from '../commissions/matrix-placement.service'
 
 const CreateLeadSchema = z.object({
   type: z.enum(['DISTRIBUTOR', 'ESTABLISHMENT']),
@@ -18,6 +19,9 @@ const CreateLeadSchema = z.object({
   // backward-compat even though the current /parceiro form always sends these.
   idToken: z.string().optional(),
   walletAddress: z.string().optional(),
+  // Distributors/establishments are affiliates too — same as consumers, they
+  // land in the network via ?ref= or the company fallback code.
+  ref: z.string().optional(),
 })
 
 export async function partnerLeadRoutes(app: FastifyInstance) {
@@ -32,7 +36,7 @@ export async function partnerLeadRoutes(app: FastifyInstance) {
     if (!parsed.success) {
       return reply.status(400).send({ error: 'Dados inválidos', details: parsed.error.flatten().fieldErrors })
     }
-    const { idToken, walletAddress, ...leadFields } = parsed.data
+    const { idToken, walletAddress, ref, ...leadFields } = parsed.data
 
     if (!idToken || !walletAddress) {
       const lead = await prisma.partnerLead.create({ data: leadFields })
@@ -62,6 +66,12 @@ export async function partnerLeadRoutes(app: FastifyInstance) {
         portalStatus: 'PENDING_APPROVAL',
       },
     })
+
+    const referrer = await resolveReferrer(ref, user.id)
+    if (referrer) {
+      await prisma.user.update({ where: { id: user.id }, data: { referredById: referrer.id } })
+      await placeInMatrix(user.id, referrer.id).catch(err => console.error('[matrix] placement failed for', user.id, err))
+    }
 
     const lead = await prisma.partnerLead.create({ data: { ...leadFields, email, userId: user.id } })
 

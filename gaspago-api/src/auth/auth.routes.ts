@@ -4,7 +4,7 @@ import Redis from 'ioredis'
 import { OtpService } from './otp.service'
 import { sendText } from '../whatsapp/client'
 import { prisma } from '../shared/prisma'
-import { placeInMatrix } from '../commissions/matrix-placement.service'
+import { placeInMatrix, resolveReferrer } from '../commissions/matrix-placement.service'
 
 const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379')
 
@@ -75,9 +75,12 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       })
     }
 
-    if (isNewUser && ref) {
-      const referrer = await prisma.user.findUnique({ where: { referralCode: ref } })
-      if (referrer && referrer.id !== user.id) {
+    if (isNewUser) {
+      // Falls back to the company's own referral code (SuperAdmin →
+      // Credenciais → Comissões) when no ?ref= was used — everyone ends up
+      // somewhere in the network, never with no matrix position at all.
+      const referrer = await resolveReferrer(ref, user.id)
+      if (referrer) {
         await prisma.user.update({ where: { id: user.id }, data: { referredById: referrer.id } })
         await placeInMatrix(user.id, referrer.id).catch(err => console.error('[matrix] placement failed for', user!.id, err))
       }

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import axios from 'axios'
 import { prisma } from '../shared/prisma'
 import { SystemConfigService } from '../shared/system-config.service'
-import { placeInMatrix } from '../commissions/matrix-placement.service'
+import { placeInMatrix, resolveReferrer } from '../commissions/matrix-placement.service'
 
 const bodySchema = z.object({
   idToken: z.string(),
@@ -132,12 +132,10 @@ export async function googleAuthRoutes(app: FastifyInstance) {
         },
       })
 
-      if (ref) {
-        const referrer = await prisma.user.findUnique({ where: { referralCode: ref } })
-        if (referrer && referrer.id !== user.id) {
-          await prisma.user.update({ where: { id: user.id }, data: { referredById: referrer.id } })
-          await placeInMatrix(user.id, referrer.id).catch(err => console.error('[matrix] placement failed for', user!.id, err))
-        }
+      const referrer = await resolveReferrer(ref, user.id)
+      if (referrer) {
+        await prisma.user.update({ where: { id: user.id }, data: { referredById: referrer.id } })
+        await placeInMatrix(user.id, referrer.id).catch(err => console.error('[matrix] placement failed for', user!.id, err))
       }
     }
 

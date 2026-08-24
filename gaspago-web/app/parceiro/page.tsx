@@ -26,6 +26,7 @@ function ParceiroForm() {
   const params = useSearchParams()
   const router = useRouter()
   const initialType: LeadType = params.get('tipo') === 'estabelecimento' ? 'ESTABLISHMENT' : 'DISTRIBUTOR'
+  const ref = params.get('ref') ?? undefined
 
   const [type, setType] = useState<LeadType>(initialType)
   const [name, setName] = useState('')
@@ -72,6 +73,7 @@ function ParceiroForm() {
           message: message || undefined,
           idToken: result.idToken,
           walletAddress: result.walletAddress,
+          ref,
         }),
       })
       const data = await res.json().catch(() => null)
