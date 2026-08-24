@@ -1,13 +1,10 @@
 import { FastifyInstance } from 'fastify'
-import { requireRole } from '../shared/auth.middleware'
 import { In1888EcacService } from './in1888-ecac.service'
 import { CnpjAuditorService } from '../shared/cnpj-auditor.service'
 
 export async function ecacAdminRoutes(app: FastifyInstance) {
-  const requireAdmin = requireRole('SUPERADMIN', 'ADMIN')
-
   // GET /admin/ecac/in1888/summary — get monthly volume & threshold status (R$ 30k/month IN 1888)
-  app.get('/in1888/summary', { preHandler: requireAdmin }, async (req) => {
+  app.get('/in1888/summary', async (req) => {
     const { year, month } = req.query as { year?: string; month?: string }
     const y = year ? parseInt(year) : undefined
     const m = month ? parseInt(month) : undefined
@@ -15,7 +12,7 @@ export async function ecacAdminRoutes(app: FastifyInstance) {
   })
 
   // GET /admin/ecac/in1888/export-xml — download official RFB IN 1888 XML for e-CAC submission
-  app.get('/in1888/export-xml', { preHandler: requireAdmin }, async (req, reply) => {
+  app.get('/in1888/export-xml', async (req, reply) => {
     const { year, month } = req.query as { year?: string; month?: string }
     const now = new Date()
     const y = year ? parseInt(year) : now.getFullYear()
@@ -28,8 +25,8 @@ export async function ecacAdminRoutes(app: FastifyInstance) {
     return reply.send(xml)
   })
 
-  // GET /admin/cnpj/audit/:cnpj — 100% free Receita Federal CNPJ audit (BrasilAPI)
-  app.get('/cnpj-audit/:cnpj', { preHandler: requireAdmin }, async (req) => {
+  // GET /admin/ecac/cnpj-audit/:cnpj — 100% free Receita Federal CNPJ audit (BrasilAPI)
+  app.get('/cnpj-audit/:cnpj', async (req) => {
     const { cnpj } = req.params as { cnpj: string }
     return CnpjAuditorService.auditCnpj(cnpj)
   })

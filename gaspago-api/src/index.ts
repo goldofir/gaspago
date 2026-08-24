@@ -51,8 +51,8 @@ async function bootstrap() {
   app.register(affiliateRoutes, { prefix: '/affiliates' })
   app.register(kycRoutes, { prefix: '/kyc' })
   app.register(kycAdminRoutes, { prefix: '/admin/kyc' })
-  app.register(ecacAdminRoutes, { prefix: '/admin/ecac' })
   app.register(paymentRoutes, { prefix: '/payments' })
+
 
   app.register(posRoutes, { prefix: '/pos' })
   app.register(catalogRoutes, { prefix: '/pos' })
