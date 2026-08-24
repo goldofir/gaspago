@@ -14,9 +14,10 @@ type CatalogItem = {
   imageUrl?: string | null
   isAvailable: boolean
   createdAt: string
+  cashbackPercentOverride: number | null // whole percent (0-100), null = usa o padrão do estabelecimento
 }
 
-const emptyForm = { name: '', description: '', price: '', imageUrl: '', isAvailable: true }
+const emptyForm = { name: '', description: '', price: '', imageUrl: '', isAvailable: true, cashbackPercentOverride: '' }
 
 function formatPrice(price: string | number) {
   return `R$ ${Number(price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -58,6 +59,7 @@ export default function PosCatalogPage() {
         setError('Informe um preço válido.')
         return
       }
+      const overridePct = form.cashbackPercentOverride.trim() === '' ? null : parseFloat(form.cashbackPercentOverride.replace(',', '.'))
       const res = await portalFetch(TOKEN_KEY, `${API}/pos/me/catalog`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -67,6 +69,7 @@ export default function PosCatalogPage() {
           price: priceValue,
           imageUrl: form.imageUrl.trim() || undefined,
           isAvailable: form.isAvailable,
+          cashbackPercentOverride: overridePct,
         }),
       })
       if (!res.ok) {
@@ -79,6 +82,24 @@ export default function PosCatalogPage() {
       load()
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function updateOverride(item: CatalogItem, raw: string) {
+    const value = raw.trim() === '' ? null : parseFloat(raw.replace(',', '.'))
+    if (value !== null && (!Number.isFinite(value) || value < 0 || value > 100)) return
+    setBusyId(item.id)
+    try {
+      const res = await portalFetch(TOKEN_KEY, `${API}/pos/me/catalog/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cashbackPercentOverride: value }),
+      })
+      if (res.ok) {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, cashbackPercentOverride: value } : i))
+      }
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -159,6 +180,10 @@ export default function PosCatalogPage() {
               <label style={labelStyle}>Imagem (URL opcional)</label>
               <input value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} style={inputStyle} placeholder="https://…" />
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={labelStyle}>Cashback deste item (%, opcional)</label>
+              <input inputMode="decimal" placeholder="Padrão do estabelecimento" value={form.cashbackPercentOverride} onChange={e => setForm(f => ({ ...f, cashbackPercentOverride: e.target.value }))} style={inputStyle} />
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, gridColumn: '1 / -1' }}>
               <label style={labelStyle}>Descrição</label>
               <textarea rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} style={{ ...inputStyle, resize: 'vertical' }} />
@@ -189,7 +214,7 @@ export default function PosCatalogPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--ground)' }}>
-                    {['Item', 'Descrição', 'Preço', 'Status', 'Ações'].map(h => (
+                    {['Item', 'Descrição', 'Preço', 'Cashback', 'Status', 'Ações'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '10px 14px', color: 'var(--muted)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em' }}>{h}</th>
                     ))}
                   </tr>
@@ -213,6 +238,16 @@ export default function PosCatalogPage() {
                         {item.description || '—'}
                       </td>
                       <td style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text)' }}>{formatPrice(item.price)}</td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <input
+                          defaultValue={item.cashbackPercentOverride ?? ''}
+                          placeholder="Padrão"
+                          disabled={busyId === item.id}
+                          onBlur={e => e.target.value !== String(item.cashbackPercentOverride ?? '') && updateOverride(item, e.target.value)}
+                          style={{ width: 64, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--text)', background: 'var(--ground)' }}
+                        />
+                        <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 3 }}>%</span>
+                      </td>
                       <td style={{ padding: '12px 14px' }}>
                         <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: item.isAvailable ? '#10B98118' : '#EF444418', color: item.isAvailable ? '#10B981' : '#EF4444' }}>
                           {item.isAvailable ? 'Disponível' : 'Indisponível'}
@@ -267,6 +302,17 @@ export default function PosCatalogPage() {
                   {item.description && (
                     <p style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 12 }}>{item.description}</p>
                   )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>Cashback deste item:</span>
+                    <input
+                      defaultValue={item.cashbackPercentOverride ?? ''}
+                      placeholder="Padrão"
+                      disabled={busyId === item.id}
+                      onBlur={e => e.target.value !== String(item.cashbackPercentOverride ?? '') && updateOverride(item, e.target.value)}
+                      style={{ width: 60, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--text)', background: 'var(--ground)' }}
+                    />
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>%</span>
+                  </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       onClick={() => toggleAvailable(item)}
