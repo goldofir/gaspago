@@ -4,7 +4,7 @@ import { prisma } from '../shared/prisma'
 import { findDistributorsByPostalCode, findDistributorsByLocation } from './routing.service'
 import { distributeCommissions } from '../commissions/commission.service'
 import { NotificationService } from '../notifications/notification.service'
-import { requireAuth } from '../shared/auth.middleware'
+import { requireAuth, requireRole } from '../shared/auth.middleware'
 import { createPixCharge, getPixQrCode, asaasErrorMessage } from '../payments/asaas.client'
 import { getOrCreateCustomerId } from '../payments/customer.service'
 
@@ -131,8 +131,13 @@ export async function orderRoutes(app: FastifyInstance) {
     }
   })
 
-  // POST /orders/:id/delivered — mark delivered, trigger commissions
-  app.post('/:id/delivered', async (req, reply) => {
+  // POST /orders/:id/delivered — mark delivered, trigger commissions.
+  // No client actually calls this (the distributor portal uses PATCH
+  // /distributors/me/orders/:orderId/status, which is scoped to the caller's
+  // own distributorId) — but it triggers a real commission payout, so it had
+  // no business being reachable with zero auth. Restricted to admin as a
+  // manual-override utility rather than left open to anyone who finds it.
+  app.post('/:id/delivered', { preHandler: requireRole('SUPERADMIN', 'ADMIN') }, async (req, reply) => {
     const { id } = req.params as { id: string }
     const order = await prisma.order.update({ where: { id }, data: { status: 'DELIVERED', deliveredAt: new Date() } })
     // fire-and-forget — don't block the response
