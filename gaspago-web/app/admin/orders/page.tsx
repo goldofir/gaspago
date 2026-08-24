@@ -151,6 +151,7 @@ function StatCard({
 }) {
   return (
     <div
+      className="stat-card"
       style={{
         background: 'var(--surface)',
         border: '1px solid var(--border)',
@@ -164,6 +165,7 @@ function StatCard({
         minWidth: 0,
       }}
     >
+
       <div
         style={{
           width: 44,
@@ -322,10 +324,11 @@ export default function OrdersPage() {
           color: var(--text);
         }
 
-        .stats-grid {
+        .stats-row {
           display: flex;
           gap: 16px;
-          margin-bottom: 24px;
+          margin-bottom: 28px;
+          flex-wrap: wrap;
         }
 
         .filter-bar {
@@ -342,12 +345,22 @@ export default function OrdersPage() {
           flex-wrap: wrap;
         }
 
-        @media (max-width: 640px) {
-          .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 16px;
+        @media (max-width: 767px) {
+          .stats-row {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            margin-bottom: 16px !important;
+          }
+
+          .stat-card {
+            padding: 12px 14px !important;
+            gap: 10px !important;
+            min-width: 0 !important;
+          }
+
+          .stat-card p {
+            font-size: 20px !important;
           }
 
           .filter-bar {

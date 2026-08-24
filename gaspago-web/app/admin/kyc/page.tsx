@@ -182,32 +182,55 @@ export default function AdminKycPage() {
         </button>
       </div>
 
+      <style>{`
+        .kyc-kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+        @media (max-width: 767px) {
+          .kyc-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            margin-bottom: 16px !important;
+          }
+          .kyc-kpi-card {
+            padding: 12px 14px !important;
+          }
+          .kyc-kpi-card p {
+            font-size: 20px !important;
+          }
+        }
+      `}</style>
+
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#F59E0B', marginBottom: 8 }}>
-            <AlertTriangle size={18} />
-            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Pendentes</span>
+      <div className="kyc-kpi-grid">
+        <div className="kyc-kpi-card" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#F59E0B', marginBottom: 6 }}>
+            <AlertTriangle size={16} />
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Pendentes</span>
           </div>
-          <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)' }}>{total}</p>
+          <p style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', margin: 0 }}>{total}</p>
         </div>
 
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#10B981', marginBottom: 8 }}>
-            <CheckCircle2 size={18} />
-            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Nível Exigido</span>
+        <div className="kyc-kpi-card" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#10B981', marginBottom: 6 }}>
+            <CheckCircle2 size={16} />
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Nível Exigido</span>
           </div>
-          <p style={{ fontSize: 18, fontWeight: 800, color: '#10B981' }}>Nível 2 (Biometria + RG)</p>
+          <p style={{ fontSize: 16, fontWeight: 800, color: '#10B981', margin: 0 }}>Nível 2 (Biometria)</p>
         </div>
 
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#3B82F6', marginBottom: 8 }}>
-            <ShieldCheck size={18} />
-            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Segurança</span>
+        <div className="kyc-kpi-card" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#3B82F6', marginBottom: 6 }}>
+            <ShieldCheck size={16} />
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Segurança</span>
           </div>
-          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>MinIO Privado + WebP 1920px</p>
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', margin: 0 }}>MinIO Privado + WebP</p>
         </div>
       </div>
+
 
       {/* Filter Tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
