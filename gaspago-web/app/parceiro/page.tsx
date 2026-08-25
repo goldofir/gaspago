@@ -111,6 +111,7 @@ function ParceiroForm() {
         .pcr-input:focus, .pcr-select:focus, .pcr-textarea:focus { border-color: #FF6524; }
         .pcr-textarea { resize: vertical; min-height: 70px; }
         .pcr-error { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.18); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #EF4444; font-weight: 500; margin-bottom: 16px; }
+        .pcr-step-hint { font-size: 12px; color: #64748B; line-height: 1.5; margin: 0 0 10px; text-align: center; }
         .pcr-submit { width: 100%; padding: 13px; background: #FF6524; color: #fff; border: none; border-radius: 10px; font-family: 'Sora'; font-weight: 700; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px; transition: transform .1s; }
         .pcr-submit:hover:not(:disabled) { transform: translateY(-1px); }
         .pcr-submit:disabled { opacity: .7; cursor: not-allowed; }
@@ -224,13 +225,17 @@ function ParceiroForm() {
 
                 {error && <div className="pcr-error" role="alert">{error}</div>}
 
+                <p className="pcr-step-hint">
+                  Último passo — confirme com Google ou e-mail pra criar sua carteira digital e concluir <strong>este mesmo</strong> cadastro (não é um segundo formulário).
+                </p>
+
                 {submitting ? (
                   <button type="button" className="pcr-submit" disabled>
                     <Loader2 size={16} className="pcr-spin" /> Enviando…
                   </button>
                 ) : (
                   <Web3AuthConnect
-                    label="Continuar e criar carteira"
+                    label="Confirmar e criar carteira"
                     beforeConnect={validateForm}
                     onSuccess={handleWeb3AuthSuccess}
                     onError={setError}

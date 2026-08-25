@@ -12,6 +12,35 @@ export type Web3AuthResult = {
   name: string | null
 }
 
+// The SDK throws in English, straight from its own internals ("Wallet popup
+// has been closed by the user.") — meaningless to a Brazilian business owner
+// filling out a signup form, and reads like a totally separate app broke,
+// not like "you closed the window, try again." Maps the handful of cases
+// that actually happen in practice to plain Portuguese; anything unrecognized
+// falls back to one generic friendly line instead of leaking raw SDK text —
+// the real error is still in console.error for us to debug from.
+function friendlyWeb3AuthError(err: any): string {
+  const raw = String(err?.message ?? err ?? '').toLowerCase()
+  if (raw.includes('popup') && raw.includes('closed')) {
+    return 'Você fechou a janela antes de terminar. Toque no botão abaixo de novo pra continuar de onde parou.'
+  }
+  if (raw.includes('user closed') || raw.includes('user cancelled') || raw.includes('user canceled')) {
+    return 'Conexão cancelada. Toque no botão abaixo pra tentar de novo.'
+  }
+  if (raw.includes('timeout') || raw.includes('timed out')) {
+    return 'A conexão demorou demais e expirou. Tente de novo.'
+  }
+  if (raw.includes('network') || raw.includes('failed to fetch')) {
+    return 'Sem conexão no momento. Verifique sua internet e tente de novo.'
+  }
+  return 'Não foi possível conectar. Tente de novo — se continuar, tente com outro método (Google ou e-mail).'
+}
+
+// Thrown for our own, already-friendly-Portuguese config errors — kept
+// distinct from the SDK's own (English) errors so the catch block below
+// knows which messages to translate and which to just pass through.
+class Web3AuthConfigError extends Error {}
+
 // One Web3Auth instance per page load — init() is expensive (loads the modal
 // iframe) and calling it twice throws, same reasoning as the GSI singleton
 // issue investigated elsewhere in this app.
@@ -28,7 +57,7 @@ async function getWeb3Auth() {
       fetch(`${API}/public-config`).then(r => r.json()),
     ])
     if (!cfg.web3authClientId) {
-      throw new Error('Web3Auth não configurado. Configure em SuperAdmin → Credenciais.')
+      throw new Web3AuthConfigError('Web3Auth não configurado. Peça pro administrador configurar em SuperAdmin → Credenciais.')
     }
     const network = (WEB3AUTH_NETWORK as any)[cfg.web3authNetwork?.toUpperCase()] ?? WEB3AUTH_NETWORK.SAPPHIRE_DEVNET
     const web3auth = new Web3Auth({
@@ -100,15 +129,15 @@ export default function Web3AuthConnect({
       }
       onSuccess({ idToken, walletAddress, email: userInfo?.email ?? null, name: userInfo?.name ?? null })
     } catch (err: any) {
-      // The SDK's connect() often throws with no useful .message (e.g. a stale
-      // session left over from an earlier connect() on the SAME page load —
-      // web3AuthPromise is a module-level singleton, so client-side navigation
-      // between pages that both use this component can carry an already-
-      // connected instance into a fresh connect() call). Logging the raw error
-      // is the only way to actually see what's failing instead of always
-      // showing the same generic string.
+      // The SDK's connect() throws in English straight from its internals
+      // (e.g. "Wallet popup has been closed by the user.") — meaningless to
+      // an end user and reads like a different app broke. Always show a
+      // friendly Portuguese line; the real error still goes to console for
+      // us to debug from. Our own config errors are already friendly
+      // Portuguese, so those pass through unchanged instead of being
+      // (wrongly) matched against the SDK-error patterns.
       console.error('[Web3Auth] connect() failed:', err)
-      onError(err?.message || String(err) || 'Erro ao conectar. Tente novamente.')
+      onError(err instanceof Web3AuthConfigError ? err.message : friendlyWeb3AuthError(err))
     } finally {
       setLoading(false)
       busy.current = false
