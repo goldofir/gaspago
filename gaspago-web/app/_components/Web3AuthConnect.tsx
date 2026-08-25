@@ -100,7 +100,15 @@ export default function Web3AuthConnect({
       }
       onSuccess({ idToken, walletAddress, email: userInfo?.email ?? null, name: userInfo?.name ?? null })
     } catch (err: any) {
-      onError(err?.message ?? 'Erro ao conectar. Tente novamente.')
+      // The SDK's connect() often throws with no useful .message (e.g. a stale
+      // session left over from an earlier connect() on the SAME page load —
+      // web3AuthPromise is a module-level singleton, so client-side navigation
+      // between pages that both use this component can carry an already-
+      // connected instance into a fresh connect() call). Logging the raw error
+      // is the only way to actually see what's failing instead of always
+      // showing the same generic string.
+      console.error('[Web3Auth] connect() failed:', err)
+      onError(err?.message || String(err) || 'Erro ao conectar. Tente novamente.')
     } finally {
       setLoading(false)
       busy.current = false
