@@ -10,6 +10,7 @@ import { storageRoutes } from './storage.routes'
 import { authRoutes } from './auth.routes'
 import { usersRoutes } from './users.routes'
 import { revenueRoutes } from './revenue.routes'
+import { dashboardRoutes } from './dashboard.routes'
 import { ordersAdminRoutes } from './orders.admin.routes'
 import { distributorsAdminRoutes } from './distributors.admin.routes'
 import { subscriptionsAdminRoutes } from './subscriptions.admin.routes'
@@ -39,6 +40,7 @@ export async function adminRoutes(app: FastifyInstance) {
   app.register(storageRoutes)
   app.register(usersRoutes)
   app.register(revenueRoutes)
+  app.register(dashboardRoutes)
   app.register(ordersAdminRoutes)
   app.register(distributorsAdminRoutes)
   app.register(subscriptionsAdminRoutes)
