@@ -70,8 +70,6 @@ export default function AdminNetworkPage() {
 
   const [width, setWidth] = useState('')
   const [depth, setDepth] = useState('')
-  const [savingConfig, setSavingConfig] = useState(false)
-  const [configMsg, setConfigMsg] = useState('')
 
   useEffect(() => {
     adminFetch(`${API}/affiliates/roots`)
@@ -101,23 +99,6 @@ export default function AdminNetworkPage() {
       .finally(() => setLoadingTree(false))
   }, [selectedId])
 
-  async function saveConfig() {
-    setSavingConfig(true)
-    setConfigMsg('')
-    try {
-      await Promise.all([
-        adminFetch(`${API}/admin/credentials/MATRIX_WIDTH`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: width }) }),
-        adminFetch(`${API}/admin/credentials/MATRIX_DEPTH`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: depth }) }),
-      ])
-      setConfigMsg('Salvo — vale a partir do próximo cadastro.')
-    } catch {
-      setConfigMsg('Erro ao salvar.')
-    } finally {
-      setSavingConfig(false)
-      setTimeout(() => setConfigMsg(''), 4000)
-    }
-  }
-
   return (
     <div style={{ minHeight: '100vh', background: 'var(--ground)', padding: '32px 24px', fontFamily: 'Inter, sans-serif', color: 'var(--text)' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -127,23 +108,19 @@ export default function AdminNetworkPage() {
           <p style={{ marginTop: 6, fontSize: 13.5, color: 'var(--sub)' }}>Toda a rede de indicação sendo formada — cada raiz é um ciclo independente (inclui reentradas).</p>
         </div>
 
-        {/* Config */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 20, display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap' }}>
-          <Settings2 size={18} color="var(--muted)" style={{ marginBottom: 8 }} />
-          <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Largura</label>
-            <input value={width} onChange={e => setWidth(e.target.value)} style={{ width: 70, padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }} />
+        {/* Config summary (read-only — configurado em Credenciais → Comissões) */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
+          <Settings2 size={16} color="var(--muted)" />
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase' }}>Largura</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{width || '—'}</span>
           </div>
-          <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Profundidade</label>
-            <input value={depth} onChange={e => setDepth(e.target.value)} style={{ width: 70, padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }} />
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase' }}>Profundidade</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{depth || '—'}</span>
           </div>
-          <button onClick={saveConfig} disabled={savingConfig} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--flame)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', opacity: savingConfig ? 0.7 : 1 }}>
-            {savingConfig ? 'Salvando…' : 'Salvar'}
-          </button>
-          {configMsg && <span style={{ fontSize: 12.5, color: 'var(--sub)' }}>{configMsg}</span>}
           <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}>
-            Comissões por nível, cashback e código da empresa: <a href="/admin/credentials" style={{ color: 'var(--flame)', fontWeight: 600 }}>Credenciais → Comissões</a>
+            Configurável (junto com comissões por nível, cashback e código da empresa) em <a href="/admin/credentials" style={{ color: 'var(--flame)', fontWeight: 600 }}>Credenciais → Comissões</a>
           </span>
         </div>
 
