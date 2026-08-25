@@ -15,6 +15,9 @@ const PlanSchema = z.object({
   // Only applies when someone actually pays for this plan (subscription
   // commission), not to orders/POS sales.
   networkLevelPcts: z.record(z.string(), z.number().min(0).max(100)).nullable().optional(),
+  // Flat bonus to whoever actually referred the buyer (User.referredById),
+  // independent of matrix position. null = use the global DIRECT_REFERRER_PCT.
+  directReferrerPct: z.number().min(0).max(100).nullable().optional(),
 });
 
 // Prisma's Json columns need the Prisma.JsonNull sentinel to actually write a

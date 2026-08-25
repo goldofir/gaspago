@@ -10,6 +10,7 @@ const DEFAULT_PLATFORM_PCT = 30
 const DEFAULT_CREDENCIADOR_PCT = 10
 // 35% total network commission, split equally across the old fixed 5 levels.
 const DEFAULT_LEVEL_PCT = [7, 7, 7, 7, 7]
+const DEFAULT_DIRECT_REFERRER_PCT = 0
 
 function readPct(key: string, fallback: number): number {
   const raw = SystemConfigService.get(key)
@@ -54,11 +55,14 @@ export async function getCredenciadorPct(credenciadorUserId: string): Promise<nu
   return Number.isFinite(premium) ? premium / 100 : baseRate
 }
 
-// Level is 1-indexed (1 = the direct referrer, closest to the buyer).
-// Levels beyond what's explicitly configured (KNOWN_KEYS only goes up to
-// MATRIX_LEVEL_10_PCT) default to 0 — an admin running a deeper matrix than
-// that needs to configure those levels explicitly, there's no formula to
-// fall back to since levels are independent now, not an equal split.
+// Level is 1-indexed (1 = closest matrix ancestor to the buyer). This is
+// matrix POSITION, not necessarily who really referred the buyer — those
+// diverge once spillover places someone under a different node than their
+// actual sponsor (see getDirectReferrerPct below for the sponsor-specific
+// bonus). Levels beyond what's explicitly configured (KNOWN_KEYS only goes
+// up to MATRIX_LEVEL_10_PCT) default to 0 — an admin running a deeper
+// matrix than that needs to configure those levels explicitly, there's no
+// formula to fall back to since levels are independent now, not an equal split.
 export function getLevelPct(level: number): number {
   if (level < 1 || level > 10) return 0
   return readPct(`MATRIX_LEVEL_${level}_PCT`, DEFAULT_LEVEL_PCT[level - 1] ?? 0) / 100
@@ -73,4 +77,16 @@ export function getPlanLevelPct(plan: { networkLevelPcts?: unknown } | null | un
   const override = overrides?.[String(level)]
   if (typeof override === 'number' && Number.isFinite(override)) return override / 100
   return getLevelPct(level)
+}
+
+// Flat bonus paid to whoever actually referred the buyer (User.referredById),
+// independent of the matrix — see Plan.directReferrerPct in schema.prisma for
+// why this exists as a separate concept from the level-1 network commission.
+// Defaults to 0 (off) globally — a brand new commission stream shouldn't
+// silently start paying out until an admin configures it.
+export function getDirectReferrerPct(plan?: { directReferrerPct?: number | null } | null): number {
+  if (plan?.directReferrerPct !== undefined && plan?.directReferrerPct !== null) {
+    return plan.directReferrerPct / 100
+  }
+  return readPct('DIRECT_REFERRER_PCT', DEFAULT_DIRECT_REFERRER_PCT) / 100
 }

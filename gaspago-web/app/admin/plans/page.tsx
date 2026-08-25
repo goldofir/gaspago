@@ -15,6 +15,7 @@ interface Plan {
   features: string[]
   isActive: boolean
   networkLevelPcts: Record<string, number> | null
+  directReferrerPct: number | null
   _count?: { subscriptions: number }
 }
 
@@ -29,9 +30,11 @@ interface FormState {
   // One entry per matrix level, index 0 = level 1 — empty string means
   // "use the global %" for that level (Credenciais → Comissões).
   levelPcts: string[]
+  // Empty = use the global DIRECT_REFERRER_PCT default.
+  directReferrerPct: string
 }
 
-const EMPTY_FORM: FormState = { id: null, name: '', slug: '', price: '', billingCycle: 'MONTHLY', features: '', isActive: true, levelPcts: [] }
+const EMPTY_FORM: FormState = { id: null, name: '', slug: '', price: '', billingCycle: 'MONTHLY', features: '', isActive: true, levelPcts: [], directReferrerPct: '' }
 
 function formatPrice(price: number | string, cycle: string) {
   return `R$ ${Number(price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/${cycle === 'YEARLY' ? 'ano' : 'mês'}`
@@ -47,6 +50,7 @@ export default function AdminPlansPage() {
   const [saving, setSaving] = useState(false)
   const [matrixDepth, setMatrixDepth] = useState(5)
   const [globalLevelPcts, setGlobalLevelPcts] = useState<string[]>([])
+  const [globalDirectReferrerPct, setGlobalDirectReferrerPct] = useState('')
 
   useEffect(() => {
     adminFetch(`${API}/admin/credentials`)
@@ -56,6 +60,7 @@ export default function AdminPlansPage() {
         const depth = Number(flat.find(c => c.key === 'MATRIX_DEPTH')?.value) || 5
         setMatrixDepth(depth)
         setGlobalLevelPcts(Array.from({ length: depth }, (_, i) => flat.find(c => c.key === `MATRIX_LEVEL_${i + 1}_PCT`)?.value ?? ''))
+        setGlobalDirectReferrerPct(flat.find(c => c.key === 'DIRECT_REFERRER_PCT')?.value ?? '0')
       })
       .catch(() => {})
   }, [])
@@ -95,6 +100,7 @@ export default function AdminPlansPage() {
         const v = plan.networkLevelPcts?.[String(i + 1)]
         return v === undefined || v === null ? '' : String(v)
       }),
+      directReferrerPct: plan.directReferrerPct === null || plan.directReferrerPct === undefined ? '' : String(plan.directReferrerPct),
     })
     setFormError(null)
     setFormOpen(true)
@@ -113,6 +119,8 @@ export default function AdminPlansPage() {
       if (raw.trim() !== '' && Number.isFinite(v)) networkLevelPcts[String(i + 1)] = v
     })
 
+    const directReferrerPctNum = form.directReferrerPct.trim() === '' ? null : Number(form.directReferrerPct.replace(',', '.'))
+
     const body = {
       name: form.name.trim(),
       slug: form.slug.trim().toLowerCase(),
@@ -121,6 +129,7 @@ export default function AdminPlansPage() {
       features: form.features.split(',').map(f => f.trim()).filter(Boolean),
       isActive: form.isActive,
       networkLevelPcts: Object.keys(networkLevelPcts).length > 0 ? networkLevelPcts : null,
+      directReferrerPct: directReferrerPctNum !== null && Number.isFinite(directReferrerPctNum) ? directReferrerPctNum : null,
     }
 
     setSaving(true)
@@ -221,10 +230,25 @@ export default function AdminPlansPage() {
 
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--sub)', marginBottom: 4 }}>
+                Comissão do indicador direto (%)
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
+                Vai pra quem realmente indicou o comprador, independente da matriz — pode ser gente diferente de quem está no Nível 1 abaixo, se o indicador já tinha a linha cheia e o comprador transbordou pra outro lugar. Paga além da rede por nível, não em vez dela. Deixe em branco pra usar o padrão global (<a href="/admin/credentials" style={{ color: 'var(--flame)' }}>Credenciais → Comissões</a>).
+              </div>
+              <input
+                value={form.directReferrerPct}
+                onChange={e => setForm(f => ({ ...f, directReferrerPct: e.target.value }))}
+                placeholder={`padrão ${globalDirectReferrerPct || '0'}`}
+                style={{ ...inputStyle, padding: '7px 10px', fontSize: 13, width: 120 }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--sub)', marginBottom: 4 }}>
                 Comissão de rede por nível, quando alguém paga por este plano (%)
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
-                Quanto do valor pago flui pro patrocinador (nível 1) e pra cima na rede dele. Deixe em branco pra usar o padrão global de cada nível (<a href="/admin/credentials" style={{ color: 'var(--flame)' }}>Credenciais → Comissões</a>).
+                Quanto do valor pago flui pra rede, por posição na matriz (nível 1 = quem está logo acima do comprador na matriz — não necessariamente quem indicou de verdade, veja o campo acima). Deixe em branco pra usar o padrão global de cada nível (<a href="/admin/credentials" style={{ color: 'var(--flame)' }}>Credenciais → Comissões</a>).
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {form.levelPcts.map((v, i) => (
@@ -240,10 +264,12 @@ export default function AdminPlansPage() {
                 ))}
               </div>
               {(() => {
-                const total = form.levelPcts.reduce((sum, v, i) => sum + (v.trim() !== '' ? Number(v.replace(',', '.')) || 0 : Number(globalLevelPcts[i]) || 0), 0)
+                const levelTotal = form.levelPcts.reduce((sum, v, i) => sum + (v.trim() !== '' ? Number(v.replace(',', '.')) || 0 : Number(globalLevelPcts[i]) || 0), 0)
+                const directPct = form.directReferrerPct.trim() !== '' ? Number(form.directReferrerPct.replace(',', '.')) || 0 : Number(globalDirectReferrerPct) || 0
+                const total = levelTotal + directPct
                 return (
                   <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sub)' }}>
-                    Total pra rede: <strong>{total.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%</strong> do valor pago — o resto vira receita da empresa.
+                    Total pra rede (níveis + indicador direto): <strong>{total.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%</strong> do valor pago — o resto vira receita da empresa.
                   </div>
                 )
               })()}

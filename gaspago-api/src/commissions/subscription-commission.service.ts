@@ -1,7 +1,7 @@
 import { prisma } from '../shared/prisma'
 import { Currency, CommissionStatus, Prisma } from '@prisma/client'
 import { collectAncestorUserIds, getMatrixDepth } from './matrix-placement.service'
-import { getPlanLevelPct } from './commission-config.service'
+import { getPlanLevelPct, getDirectReferrerPct } from './commission-config.service'
 
 // A plan purchase (e.g. upgrading to the credenciador tier) does NOT place the
 // buyer in the matrix — they're already an affiliate somewhere in the network,
@@ -20,7 +20,7 @@ export async function distributeSubscriptionCommission(subscriptionPaymentId: st
       id: true,
       amount: true,
       userId: true,
-      subscription: { select: { planRef: { select: { networkLevelPcts: true } } } },
+      subscription: { select: { planRef: { select: { networkLevelPcts: true, directReferrerPct: true } } } },
     },
   })
 
@@ -59,6 +59,36 @@ export async function distributeSubscriptionCommission(subscriptionPaymentId: st
     })
     balanceUpdates.push({ userId: ancUser.id, amount: levelAmount, active: isActive(ancUser.affiliateStatus) })
     networkTotal += levelAmount
+  }
+
+  // Direct-referral bonus — paid to User.referredById (who really invited the
+  // buyer), on top of the matrix-level commissions above, not instead of them.
+  // Independent of matrix position: the buyer's own network_l1 recipient can
+  // be a different person if spillover placed them under someone else.
+  const directReferrerPct = getDirectReferrerPct(plan)
+  if (directReferrerPct > 0) {
+    const buyer = await prisma.user.findUnique({ where: { id: payment.userId }, select: { referredById: true } })
+    if (buyer?.referredById) {
+      const referrer = await prisma.user.findUnique({
+        where: { id: buyer.referredById },
+        select: { id: true, affiliateStatus: true },
+      })
+      if (referrer) {
+        const bonusAmount = amount * directReferrerPct
+        if (bonusAmount > 0) {
+          ledgerEntries.push({
+            recipientId: referrer.id,
+            subscriptionPaymentId: payment.id,
+            amount: bonusAmount,
+            currency: Currency.FGOL,
+            status: resolveStatus(referrer.affiliateStatus),
+            role: 'direct_referral',
+          })
+          balanceUpdates.push({ userId: referrer.id, amount: bonusAmount, active: isActive(referrer.affiliateStatus) })
+          networkTotal += bonusAmount
+        }
+      }
+    }
   }
 
   await prisma.$transaction(async (tx) => {

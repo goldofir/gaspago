@@ -526,6 +526,8 @@ model CommissionLedger {
   role String
   // "consumer_cashback" | "network_l1" | "network_l2" | "network_l3"
   // | "network_l4" | "network_l5" | "credenciador" | "establishment_bonus" | "platform"
+  // | "direct_referral" (subscription payments only — flat bonus to the real
+  //   referrer, User.referredById, independent of matrix position)
 
   matrixLevel Int? // which level of the 5×5 generated this
 
@@ -693,6 +695,16 @@ model Plan {
   // commission-config.service.ts. Only applies to subscription-payment
   // commissions (distributeSubscriptionCommission), not orders/POS.
   networkLevelPcts Json?
+
+  // Flat bonus paid to whoever actually referred the buyer (User.referredById)
+  // — independent of the matrix. Distinct from the level-1 network commission
+  // above: level 1 pays whoever the buyer landed under IN THE MATRIX, which
+  // differs from their real sponsor once spillover kicks in (the sponsor's
+  // own line was already full). This pays the real sponsor either way, so
+  // recruiting still pays off even after their matrix fills. null = use the
+  // global DIRECT_REFERRER_PCT (Credenciais -> Comissões); paid in addition
+  // to, not instead of, the per-level network commissions.
+  directReferrerPct Float?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
