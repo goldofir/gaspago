@@ -76,9 +76,29 @@ export async function googleAuthRoutes(app: FastifyInstance) {
       const roles = PORTAL_ROLES[portal]
       const user = await prisma.user.findFirst({ where: { email, actorType: { in: roles as any } } })
 
+      // 'business' is the unified /entrar page — the only login for regular
+      // affiliates (CONSUMER) besides /cadastro's OTP flow. If the email isn't
+      // a distributor/credenciador/estabelecimento, check whether it's an
+      // affiliate instead of just 403ing — "no access" was wrong for someone
+      // who has a real account, just not a B2B one. Never creates an account
+      // here (that's /cadastro's job) — only logs in an existing CONSUMER.
+      if (!user && portal === 'business') {
+        const affiliate = await prisma.user.findFirst({ where: { email, actorType: 'CONSUMER' } })
+        if (affiliate) {
+          if (!affiliate.googleId) {
+            await prisma.user.update({ where: { id: affiliate.id }, data: { googleId, avatarUrl: avatarUrl ?? undefined } })
+          }
+          const token = (app as any).jwt.sign(
+            { id: affiliate.id, phone: affiliate.phone, role: affiliate.actorType },
+            { expiresIn: '30d' },
+          )
+          return reply.send({ token, role: affiliate.actorType, name: affiliate.name })
+        }
+      }
+
       if (!user) {
         return reply.status(403).send({
-          error: 'Esta conta Google não tem acesso a este painel. Peça ao administrador para cadastrar seu e-mail.',
+          error: 'Esta conta Google não tem acesso a nenhuma conta Gás Pago. Cadastre-se em /cadastro ou peça ao administrador para liberar seu acesso.',
         })
       }
 

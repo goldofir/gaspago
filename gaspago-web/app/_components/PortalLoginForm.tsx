@@ -23,6 +23,7 @@ const ROLE_META: Record<string, { redirect: string; tokenKey: string }> = {
   DISTRIBUTOR:   { redirect: '/distributor',  tokenKey: 'gp_distributor_token' },
   CREDENCIADOR:  { redirect: '/credenciador', tokenKey: 'gp_credenciador_token' },
   ESTABLISHMENT: { redirect: '/pos',          tokenKey: 'gp_pos_token' },
+  CONSUMER:      { redirect: '/painel',       tokenKey: 'gp_consumer_token' },
 }
 
 const UNIFIED_META = { label: 'Painel de Parceiros', accent: '#FF6524', redirect: '', tokenKey: '', placeholder: 'voce@empresa.com' }
