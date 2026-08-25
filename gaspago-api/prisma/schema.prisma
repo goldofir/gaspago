@@ -756,8 +756,15 @@ model WaMessage {
   text      String
   createdAt DateTime    @default(now())
 
+  // Conexbot's own id for this message (only set for OUTBOUND — captured
+  // from the send response) — lets a later "status" webhook event (delivered/
+  // read/failed) be matched back to the message it's reporting on.
+  providerId String?
+  status     String? // "sent" | "delivered" | "read" | "failed" — OUTBOUND only
+
   @@index([phone])
   @@index([createdAt])
+  @@index([providerId])
 }
 
 // ─── PARTNER SIGNUP LEADS ──────────────────────────────────────────────────────
