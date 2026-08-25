@@ -505,6 +505,8 @@ model CommissionLedger {
   order        Order?      @relation(fields: [orderId], references: [id])
   posPaymentId String?
   posPayment   PosPayment? @relation(fields: [posPaymentId], references: [id])
+  subscriptionPaymentId String?
+  subscriptionPayment   SubscriptionPayment? @relation(fields: [subscriptionPaymentId], references: [id])
 
   amount   Decimal          @db.Decimal(20, 8)
   currency Currency
@@ -640,6 +642,27 @@ model Subscription {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  payments SubscriptionPayment[]
+}
+
+// Each individual confirmed payment against a subscription (first charge or a
+// recurring renewal) — the anchor CommissionLedger entries point to, mirroring
+// how Order/PosPayment already work. Created only once Asaas actually confirms
+// the PIX (webhook), never at checkout time — a plan purchase does NOT place
+// the buyer in the matrix (they're already an affiliate, this is just a tier
+// upgrade), it only pays part of the price paid up the buyer's existing network.
+model SubscriptionPayment {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  userId         String
+  amount         Decimal      @db.Decimal(10, 2)
+  asaasPaymentId String       @unique
+
+  createdAt DateTime @default(now())
+
+  commissions CommissionLedger[]
 }
 
 // ─── PLANS (SuperAdmin-configurable — price/name/features, not hardcoded) ─────

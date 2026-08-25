@@ -36,7 +36,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
       orderBy: { createdAt: 'desc' },
     })
 
-    if (!subscription) {
+    if (!subscription || !subscription.isActive) {
       return reply.send({ plan: 'FREE', status: 'ACTIVE', expiresAt: null })
     }
 
@@ -96,11 +96,15 @@ export async function subscriptionRoutes(app: FastifyInstance) {
     }
 
     const asaasSubscriptionId: string = asaasRes.data?.id ?? null
-    const cycleDays = plan.billingCycle === 'YEARLY' ? 365 : 30
-    const expiresAt = new Date(Date.now() + cycleDays * 24 * 60 * 60 * 1000)
 
     const existing = await prisma.subscription.findFirst({ where: { userId } })
 
+    // isActive/expiresAt are NOT set here — a PIX charge being generated isn't
+    // a confirmed payment. Activation (and the network commission on the price
+    // paid) only happens in the Asaas webhook once PAYMENT_CONFIRMED actually
+    // arrives, so nobody gets premium-tier rates — or pays their upline — for
+    // a charge that was never paid. If the user already has an active plan,
+    // leave it untouched while this new charge is pending.
     let subscription: any
     if (existing) {
       subscription = await prisma.subscription.update({
@@ -108,8 +112,6 @@ export async function subscriptionRoutes(app: FastifyInstance) {
         data: {
           plan: 'PREMIUM',
           planId: plan.id,
-          isActive: true,
-          expiresAt,
           asaasSubId: asaasSubscriptionId,
         },
       })
@@ -119,8 +121,8 @@ export async function subscriptionRoutes(app: FastifyInstance) {
           userId,
           plan: 'PREMIUM',
           planId: plan.id,
-          isActive: true,
-          expiresAt,
+          isActive: false,
+          expiresAt: new Date(),
           asaasSubId: asaasSubscriptionId,
         },
       })
@@ -129,7 +131,7 @@ export async function subscriptionRoutes(app: FastifyInstance) {
     return reply.send({
       subscription: {
         plan: subscription.plan,
-        status: subscription.isActive ? 'ACTIVE' : 'CANCELLED',
+        status: subscription.isActive ? 'ACTIVE' : 'PENDING',
         expiresAt: subscription.expiresAt,
       },
       pixQrCode: asaasRes.data?.pix?.qrCode ?? null,
