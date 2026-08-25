@@ -35,7 +35,16 @@ export async function verifyWeb3AuthToken(idToken: string, claimedWalletAddress:
       audience: clientId,
     })
     payload = result.payload
-  } catch {
+  } catch (err: any) {
+    // Was swallowed entirely before — always the same generic 401 no matter
+    // WHY verification actually failed (wrong audience, expired, wrong
+    // issuer, JWKS fetch failure...). Logging jose's real error (it's
+    // typed — .code/.message are specific, e.g. JWTClaimValidationFailed
+    // vs JWSSignatureVerificationFailed) is the only way to tell "the
+    // clientId configured in Credenciais doesn't match the one the
+    // frontend actually initialized with" apart from "token genuinely
+    // expired" apart from "network/JWKS unreachable."
+    console.error('[web3auth] token verification failed', { code: err?.code, message: err?.message, clientId })
     throw Object.assign(new Error('Token de autenticação inválido ou expirado.'), { statusCode: 401 })
   }
 

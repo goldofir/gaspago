@@ -41,6 +41,36 @@ function friendlyWeb3AuthError(err: any): string {
 // knows which messages to translate and which to just pass through.
 class Web3AuthConfigError extends Error {}
 
+// Only the two methods this app actually offers. Passing a connection type
+// that isn't provisioned on this project's Client ID throws "Invalid auth
+// connection: X" and takes the WHOLE modal init down (confirmed live for
+// farcaster and telegram) — so this list only disables connections CONFIRMED
+// live (by expanding the "..." section on the actual modal) to be valid for
+// this Client ID: google, twitter, facebook, discord, apple, github, reddit,
+// line, kakao, linkedin, twitch, wechat. farcaster/telegram are left out
+// entirely since referencing them crashes init; sms_passwordless is left out
+// too since the UI folds it into the same "Email/Telefone" field as
+// email_passwordless (unclear if it's independently toggleable). If this
+// project's dashboard config changes (new provisioned connection added), a
+// new icon can reappear here — the permanent fix is turning it off in
+// dashboard.web3auth.io → this Client ID → login methods, same as the
+// Google OAuth "authorized origins" issue.
+const LOGIN_METHODS = {
+  google: { name: 'Google', showOnModal: true },
+  email_passwordless: { name: 'E-mail', showOnModal: true },
+  twitter: { showOnModal: false },
+  facebook: { showOnModal: false },
+  discord: { showOnModal: false },
+  apple: { showOnModal: false },
+  github: { showOnModal: false },
+  reddit: { showOnModal: false },
+  line: { showOnModal: false },
+  kakao: { showOnModal: false },
+  linkedin: { showOnModal: false },
+  twitch: { showOnModal: false },
+  wechat: { showOnModal: false },
+}
+
 // One Web3Auth instance per page load — init() is expensive (loads the modal
 // iframe) and calling it twice throws, same reasoning as the GSI singleton
 // issue investigated elsewhere in this app.
@@ -64,28 +94,34 @@ async function getWeb3Auth() {
       clientId: cfg.web3authClientId,
       web3AuthNetwork: network,
       modalConfig: {
+        // Removes the separate "connect an existing crypto wallet" section
+        // entirely (bare MetaMask + hundreds of other wallets listed) —
+        // irrelevant for a business owner signing up, and actively confusing/
+        // scary next to a plain form. This one's a plain boolean, not a
+        // per-connection guess, so it's safe.
+        hideWalletDiscovery: true,
         connectors: {
-          [WALLET_CONNECTORS.AUTH]: {
-            label: 'auth',
-            showOnModal: true,
-            loginMethods: {
-              google: { name: 'Google', showOnModal: true },
-              email_passwordless: { name: 'E-mail', showOnModal: true },
-              // Everything else Web3Auth supports by default (Facebook, Twitter…)
-              // is off — this app only offers the two methods the product asked for.
-              facebook: { name: 'Facebook', showOnModal: false },
-              twitter: { name: 'Twitter', showOnModal: false },
-              discord: { name: 'Discord', showOnModal: false },
-              apple: { name: 'Apple', showOnModal: false },
-              github: { name: 'Github', showOnModal: false },
-            },
-          },
+          [WALLET_CONNECTORS.AUTH]: { label: 'auth', showOnModal: true, loginMethods: LOGIN_METHODS },
+          // MetaMask is its own top-level connector, separate from
+          // hideWalletDiscovery (which only hides the long-tail "other
+          // wallets" list) — confirmed via node_modules/@web3auth/no-modal's
+          // WALLET_CONNECTORS type. Unlike loginMethods' social sub-types,
+          // these four are standard connectors the SDK always ships with
+          // (not project-dashboard-gated), so disabling them is safe.
+          [WALLET_CONNECTORS.METAMASK]: { showOnModal: false },
+          [WALLET_CONNECTORS.WALLET_CONNECT_V2]: { showOnModal: false },
+          [WALLET_CONNECTORS.COINBASE]: { showOnModal: false },
+          [WALLET_CONNECTORS.BASE_ACCOUNT]: { showOnModal: false },
         },
       },
     })
     await web3auth.init()
     return web3auth
   })()
+  // A failed init shouldn't permanently wedge every future click on this
+  // page load into an immediately-rejected cached promise — clear it so the
+  // next click gets a fresh attempt.
+  web3AuthPromise.catch(() => { web3AuthPromise = null })
   return web3AuthPromise
 }
 
