@@ -43,8 +43,14 @@ export interface LoginResponse {
   expires_in: number;
 }
 
+// Screens keep the "+55..." form for display/masking (see OtpScreen's
+// maskedPhone regex) — the API's phone schema is `/^\d{10,13}$/`, digits
+// only, so it 400s on the "+". Strip it here, once, instead of every
+// call site remembering to.
+const toApiPhone = (phone: string) => phone.replace(/^\+/, '');
+
 export const login = (phone: string): Promise<LoginResponse> =>
-  apiClient.post('/auth/otp/request', { phone }).then((r) => r.data);
+  apiClient.post('/auth/otp/request', { phone: toApiPhone(phone) }).then((r) => r.data);
 
 export interface VerifyOtpResponse {
   access_token: string;
@@ -56,7 +62,7 @@ export const verifyOtp = (
   phone: string,
   code: string,
 ): Promise<VerifyOtpResponse> =>
-  apiClient.post('/auth/otp/verify', { phone, code }).then((r) => r.data);
+  apiClient.post('/auth/otp/verify', { phone: toApiPhone(phone), code }).then((r) => r.data);
 
 export async function loginWithGoogle(idToken: string) {
   const res = await apiClient.post('/auth/google', { idToken });
