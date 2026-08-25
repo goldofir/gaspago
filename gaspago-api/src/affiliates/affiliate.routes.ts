@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../shared/prisma'
-import { requireAuth, requireRole } from '../shared/auth.middleware'
+import { requireAuth } from '../shared/auth.middleware'
+import { requireAdminAuth } from '../admin/admin.middleware'
 import { KycService } from '../kyc/kyc.service'
 import { getMatrixDepth } from '../commissions/matrix-placement.service'
 
@@ -13,7 +14,15 @@ import { getMatrixDepth } from '../commissions/matrix-placement.service'
 // of trusting the URL param.
 function requireSelfOrAdmin(req: any, reply: any) {
   const { id } = req.params as { id: string }
-  if (req.user?.id !== id && !['SUPERADMIN', 'ADMIN'].includes(req.user?.role)) {
+  // Two unrelated JWT conventions can land here: the consumer-facing one
+  // (User.actorType, uppercase 'SUPERADMIN'/'ADMIN') and the admin panel's
+  // own (lowercase 'superadmin'/'admin', signed in admin/auth.routes.ts).
+  // Checking only one class silently 403s the other, which is exactly what
+  // happened here before this fix — SuperAdmin browsing anyone else's
+  // wallet/matrix from the admin UI always failed, only self-access worked.
+  const role = String(req.user?.role ?? '')
+  const isAdmin = ['SUPERADMIN', 'ADMIN'].includes(role) || ['superadmin', 'admin'].includes(role)
+  if (req.user?.id !== id && !isAdmin) {
     reply.status(403).send({ error: 'Acesso negado' })
     return false
   }
@@ -214,26 +223,99 @@ export async function affiliateRoutes(app: FastifyInstance) {
     return reply.send({ ok: true, message: 'Solicitação de saque enviada com sucesso!' })
   })
 
+  // GET /affiliates/roots — every top-level matrix root (SuperAdmin's entry
+  // point into "browse the whole network" — pick a root, drill into its tree
+  // via /:id/network below). A user can have more than one root (re-entry
+  // cycles), so this lists cycles, not users — dedupe client-side if needed.
+  app.get('/roots', { preHandler: requireAdminAuth }, async (req) => {
+    const roots = await prisma.matrixPosition.findMany({
+      where: { parentId: null },
+      orderBy: { createdAt: 'asc' },
+    })
+    if (roots.length === 0) return []
+
+    const userIds = roots.map(r => r.userId)
+    const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, phone: true, actorType: true } })
+    const userById = new Map(users.map(u => [u.id, u]))
+
+    // Direct + total descendant counts, one query per depth level across ALL
+    // roots at once (batched, not per-root) — same level-by-level pattern as
+    // /:id/matrix, just fanned out over multiple starting points.
+    const depth = getMatrixDepth()
+    const totalByRoot = new Map(roots.map(r => [r.id, 0]))
+    const directByRoot = new Map(roots.map(r => [r.id, 0]))
+    let frontier = roots.map(r => ({ rootId: r.id, posId: r.id }))
+    for (let level = 0; level < depth && frontier.length > 0; level++) {
+      const children = await prisma.matrixPosition.findMany({
+        where: { parentId: { in: frontier.map(f => f.posId) } },
+        select: { id: true, parentId: true },
+      })
+      const parentToRoot = new Map(frontier.map(f => [f.posId, f.rootId]))
+      const nextFrontier: typeof frontier = []
+      for (const child of children) {
+        const rootId = parentToRoot.get(child.parentId!)!
+        totalByRoot.set(rootId, (totalByRoot.get(rootId) ?? 0) + 1)
+        if (level === 0) directByRoot.set(rootId, (directByRoot.get(rootId) ?? 0) + 1)
+        nextFrontier.push({ rootId, posId: child.id })
+      }
+      frontier = nextFrontier
+    }
+
+    return roots.map(r => ({
+      matrixPositionId: r.id,
+      userId: r.userId,
+      name: userById.get(r.userId)?.name ?? null,
+      phone: userById.get(r.userId)?.phone ?? '',
+      actorType: userById.get(r.userId)?.actorType ?? null,
+      directCount: directByRoot.get(r.id) ?? 0,
+      totalCount: totalByRoot.get(r.id) ?? 0,
+      createdAt: r.createdAt,
+    }))
+  })
+
   // GET /affiliates/:id/network — matrix tree (SuperAdmin only), most recent cycle
-  app.get('/:id/network', { preHandler: requireRole('SUPERADMIN', 'ADMIN') }, async (req) => {
+  app.get('/:id/network', { preHandler: requireAdminAuth }, async (req) => {
     const { id } = req.params as { id: string }
     const depth = getMatrixDepth()
 
     const pos = await prisma.matrixPosition.findFirst({ where: { userId: id }, orderBy: { createdAt: 'desc' } })
     if (!pos) return null
 
-    // Nested children up to MATRIX_DEPTH generations, fetched level-by-level
-    // (configurable depth, so it can't be a fixed-shape `include`) and then
-    // reassembled into the same nested-children shape the include used to
-    // produce, since the admin UI reads it that way.
-    async function attachChildren(node: any, remaining: number): Promise<any> {
-      if (remaining <= 0) return { ...node, children: [] }
-      const kids = await prisma.matrixPosition.findMany({ where: { parentId: node.id }, orderBy: { createdAt: 'asc' } })
-      const withGrandchildren = await Promise.all(kids.map(k => attachChildren(k, remaining - 1)))
-      return { ...node, children: withGrandchildren }
+    // Level-by-level fetch (one query per depth, not per node) instead of the
+    // old per-node recursive version — same pattern as /:id/matrix. Names/
+    // phones are fetched in the same batches so the tree renders without a
+    // client-side waterfall of per-node lookups.
+    const nodesById = new Map<string, any>([[pos.id, { ...pos, children: [] }]])
+    let parentIds = [pos.id]
+    for (let level = 0; level < depth && parentIds.length > 0; level++) {
+      const children = await prisma.matrixPosition.findMany({
+        where: { parentId: { in: parentIds } },
+        orderBy: { createdAt: 'asc' },
+      })
+      for (const child of children) {
+        nodesById.set(child.id, { ...child, children: [] })
+      }
+      parentIds = children.map(c => c.id)
     }
 
-    return attachChildren(pos, depth)
+    const userIds = [...nodesById.values()].map(n => n.userId)
+    const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, phone: true, affiliateStatus: true } })
+    const userById = new Map(users.map(u => [u.id, u]))
+    for (const node of nodesById.values()) {
+      const u = userById.get(node.userId)
+      node.name = u?.name ?? null
+      node.phone = u?.phone ?? ''
+      node.affiliateStatus = u?.affiliateStatus ?? null
+    }
+
+    // Reassemble the flat map into the nested {children:[...]} shape the UI expects.
+    for (const node of nodesById.values()) {
+      if (node.parentId && nodesById.has(node.parentId)) {
+        nodesById.get(node.parentId)!.children.push(node)
+      }
+    }
+
+    return nodesById.get(pos.id)
   })
 }
 

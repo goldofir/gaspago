@@ -178,6 +178,14 @@ export default function CredentialsPage() {
 
   const groups = Object.entries(data.grouped)
 
+  // MATRIX_DEPTH controls how many "Rede — Nível N (%)" fields make sense to
+  // show — reads the live in-progress edit if the admin is mid-edit on that
+  // field, so the level list updates immediately without requiring a save.
+  const matrixDepthCred = groups.flatMap(([, items]) => items).find(c => c.key === 'MATRIX_DEPTH')
+  const matrixDepthRaw = matrixDepthCred ? (editing[matrixDepthCred.key] ?? matrixDepthCred.value) : undefined
+  const matrixDepthNum = Number(matrixDepthRaw)
+  const matrixDepth = Number.isFinite(matrixDepthNum) && matrixDepthNum > 0 ? matrixDepthNum : 5
+
   return (
     <div>
       <style>{`
@@ -275,8 +283,17 @@ export default function CredentialsPage() {
 
       {/* Groups */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {groups.map(([group, items]) => {
+        {groups.map(([group, allItems]) => {
           const meta = GROUP_META[group] ?? { label: group, desc: '', color: '#475569' }
+          // Only show as many "Rede — Nível N (%)" fields as the configured
+          // matrix depth actually pays out — depth 5 shows levels 1-5, depth
+          // 7 shows 1-7, etc.
+          const items = group === 'commissions'
+            ? allItems.filter(c => {
+                const m = c.key.match(/^MATRIX_LEVEL_(\d+)_PCT$/)
+                return !m || Number(m[1]) <= matrixDepth
+              })
+            : allItems
           const groupSet = items.filter(c => !c.readonly).every(c => c.isSet)
           return (
             <div key={group} style={{

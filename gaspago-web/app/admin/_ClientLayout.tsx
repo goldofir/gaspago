@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, KeyRound, Mail, HardDrive, ShieldCheck, FileText, Building2,
-  Network, TrendingUp, ShoppingBag, ChevronRight, Menu, X, Truck, CreditCard, LogOut, Store, Package, Users, Receipt, MessageCircle,
+  Network, TrendingUp, ShoppingBag, ChevronRight, Menu, X, Truck, CreditCard, LogOut, Store, Package, Users, Receipt, MessageCircle, GitBranch,
 } from 'lucide-react'
 import { adminLogout } from '../_components/adminFetch'
 
@@ -24,6 +24,7 @@ const nav = [
   { href: '/admin/leads',          label: 'Cadastros',     Icon: Users },
   { href: '/admin/conversas',      label: 'Conversas',     Icon: MessageCircle },
   { href: '/admin/affiliates',    label: 'Afiliados',     Icon: Network },
+  { href: '/admin/network',       label: 'Rede',          Icon: GitBranch },
   { href: '/admin/revenue',        label: 'Receita',      Icon: TrendingUp },
   { href: '/admin/subscriptions',  label: 'Assinaturas',  Icon: CreditCard },
   { href: '/admin/plans',          label: 'Planos',       Icon: Package },
