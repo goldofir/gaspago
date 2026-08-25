@@ -24,6 +24,7 @@ interface AffiliateUser {
   fgolFrozen: number
   lastPurchaseAt: string | null
   createdAt: string
+  plan: { name: string; slug: string } | null
   _count: {
     orders: number
     commissionsReceived: number
@@ -524,6 +525,7 @@ export default function AffiliatesPage() {
                 <tr>
                   <th>Nome / Telefone</th>
                   <th>Status</th>
+                  <th>Plano</th>
                   <th>Saldo FGOL</th>
                   <th>Pedidos</th>
                   <th>Último Pedido</th>
@@ -542,6 +544,15 @@ export default function AffiliatesPage() {
                         <StatusBadge status={u.affiliateStatus} />
                       </td>
                       <td>
+                        {u.plan ? (
+                          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--flame)', background: 'rgba(255,101,36,.1)', padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                            {u.plan.name}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>Free</span>
+                        )}
+                      </td>
+                      <td>
                         <span className="fgol-val">{u.fgolBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </td>
                       <td>{u._count.orders}</td>
@@ -550,7 +561,7 @@ export default function AffiliatesPage() {
                     </tr>
                     {expandedId === u.id && (
                       <tr key={`${u.id}-detail`}>
-                        <td colSpan={6} style={{ background: 'var(--ground)', padding: '14px 20px' }}>
+                        <td colSpan={7} style={{ background: 'var(--ground)', padding: '14px 20px' }}>
                           {loadingDetail ? (
                             <span style={{ fontSize: 13, color: 'var(--muted)' }}>Carregando…</span>
                           ) : (
@@ -586,6 +597,10 @@ export default function AffiliatesPage() {
                       <div className="user-phone">{u.phone}</div>
                     </div>
                     <StatusBadge status={u.affiliateStatus} />
+                  </div>
+                  <div className="mobile-card-row">
+                    <span>Plano</span>
+                    <span className="mobile-card-val">{u.plan?.name ?? 'Free'}</span>
                   </div>
                   <div className="mobile-card-row">
                     <span>Saldo FGOL</span>

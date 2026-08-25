@@ -1,7 +1,7 @@
 import { prisma } from '../shared/prisma'
 import { Currency, CommissionStatus, Prisma } from '@prisma/client'
 import { collectAncestorUserIds, getMatrixDepth } from './matrix-placement.service'
-import { getLevelPct } from './commission-config.service'
+import { getPlanLevelPct } from './commission-config.service'
 
 // A plan purchase (e.g. upgrading to the credenciador tier) does NOT place the
 // buyer in the matrix — they're already an affiliate somewhere in the network,
@@ -16,11 +16,18 @@ import { getLevelPct } from './commission-config.service'
 export async function distributeSubscriptionCommission(subscriptionPaymentId: string): Promise<void> {
   const payment = await prisma.subscriptionPayment.findUniqueOrThrow({
     where: { id: subscriptionPaymentId },
-    select: { id: true, amount: true, userId: true },
+    select: {
+      id: true,
+      amount: true,
+      userId: true,
+      subscription: { select: { planRef: { select: { networkLevelPcts: true } } } },
+    },
   })
 
   const amount = Number(payment.amount)
   if (amount <= 0) return
+
+  const plan = payment.subscription.planRef
 
   const isActive = (status: string) => status === 'ACTIVE'
   const resolveStatus = (status: string): CommissionStatus =>
@@ -34,7 +41,7 @@ export async function distributeSubscriptionCommission(subscriptionPaymentId: st
   let networkTotal = 0
 
   for (let i = 0; i < ancestorIds.length; i++) {
-    const levelAmount = amount * getLevelPct(i + 1)
+    const levelAmount = amount * getPlanLevelPct(plan, i + 1)
     if (levelAmount <= 0) continue
     const ancUser = await prisma.user.findUnique({
       where: { id: ancestorIds[i] },

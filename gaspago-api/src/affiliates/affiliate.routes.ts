@@ -5,6 +5,15 @@ import { requireAdminAuth } from '../admin/admin.middleware'
 import { KycService } from '../kyc/kyc.service'
 import { getMatrixDepth } from '../commissions/matrix-placement.service'
 
+// The company root's tree has no placement depth limit (see placeInMatrix) —
+// it can genuinely grow deeper than the configured commission-paying
+// MATRIX_DEPTH. These two read endpoints (/roots counts, /:id/network tree)
+// traverse to whichever is deeper so "see the whole network" actually shows
+// everything under it, not just the first paid levels. Harmless for every
+// regular affiliate's root too: their tree structurally can't exceed
+// MATRIX_DEPTH by construction, so the extra levels just come back empty.
+const NETWORK_READ_DEPTH_CAP = 100
+
 
 // These are consumer self-service endpoints (FGOL balance, commission ledger,
 // referral network) but none of them checked that the caller actually owns
@@ -223,6 +232,40 @@ export async function affiliateRoutes(app: FastifyInstance) {
     return reply.send({ ok: true, message: 'Solicitação de saque enviada com sucesso!' })
   })
 
+  // GET /affiliates/company-root — who's currently affiliate #1 (the company),
+  // if anyone. This used to be a raw referral-code text field in Credenciais
+  // — moved here since it's a real user picked from the network, not a secret.
+  app.get('/company-root', { preHandler: requireAdminAuth }, async () => {
+    const user = await prisma.user.findFirst({ where: { isCompanyRoot: true }, select: { id: true, name: true, phone: true } })
+    return user ?? null
+  })
+
+  // POST /affiliates/company-root — designate an existing user (by phone) as
+  // the company root. Unsets whoever held it before (at most one at a time —
+  // enforced here, not in the DB). The target must already be a real signed-up
+  // user; this doesn't create accounts.
+  app.post('/company-root', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const { phone } = (req.body as { phone?: string }) ?? {}
+    if (!phone) return reply.status(400).send({ error: 'Informe o telefone do afiliado.' })
+
+    const target = await prisma.user.findUnique({ where: { phone }, select: { id: true, name: true, phone: true } })
+    if (!target) return reply.status(404).send({ error: 'Nenhum usuário cadastrado com esse telefone.' })
+
+    await prisma.$transaction([
+      prisma.user.updateMany({ where: { isCompanyRoot: true }, data: { isCompanyRoot: false } }),
+      prisma.user.update({ where: { id: target.id }, data: { isCompanyRoot: true } }),
+    ])
+
+    return reply.send(target)
+  })
+
+  // DELETE /affiliates/company-root — unset, if the SuperAdmin wants no
+  // company fallback (new organic signups then get no matrix position at all).
+  app.delete('/company-root', { preHandler: requireAdminAuth }, async () => {
+    await prisma.user.updateMany({ where: { isCompanyRoot: true }, data: { isCompanyRoot: false } })
+    return { ok: true }
+  })
+
   // GET /affiliates/roots — every top-level matrix root (SuperAdmin's entry
   // point into "browse the whole network" — pick a root, drill into its tree
   // via /:id/network below). A user can have more than one root (re-entry
@@ -235,13 +278,13 @@ export async function affiliateRoutes(app: FastifyInstance) {
     if (roots.length === 0) return []
 
     const userIds = roots.map(r => r.userId)
-    const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, phone: true, actorType: true } })
+    const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, phone: true, actorType: true, isCompanyRoot: true } })
     const userById = new Map(users.map(u => [u.id, u]))
 
     // Direct + total descendant counts, one query per depth level across ALL
     // roots at once (batched, not per-root) — same level-by-level pattern as
     // /:id/matrix, just fanned out over multiple starting points.
-    const depth = getMatrixDepth()
+    const depth = Math.max(getMatrixDepth(), NETWORK_READ_DEPTH_CAP)
     const totalByRoot = new Map(roots.map(r => [r.id, 0]))
     const directByRoot = new Map(roots.map(r => [r.id, 0]))
     let frontier = roots.map(r => ({ rootId: r.id, posId: r.id }))
@@ -261,22 +304,27 @@ export async function affiliateRoutes(app: FastifyInstance) {
       frontier = nextFrontier
     }
 
-    return roots.map(r => ({
-      matrixPositionId: r.id,
-      userId: r.userId,
-      name: userById.get(r.userId)?.name ?? null,
-      phone: userById.get(r.userId)?.phone ?? '',
-      actorType: userById.get(r.userId)?.actorType ?? null,
-      directCount: directByRoot.get(r.id) ?? 0,
-      totalCount: totalByRoot.get(r.id) ?? 0,
-      createdAt: r.createdAt,
-    }))
+    return roots
+      .map(r => ({
+        matrixPositionId: r.id,
+        userId: r.userId,
+        name: userById.get(r.userId)?.name ?? null,
+        phone: userById.get(r.userId)?.phone ?? '',
+        actorType: userById.get(r.userId)?.actorType ?? null,
+        isCompanyRoot: userById.get(r.userId)?.isCompanyRoot ?? false,
+        directCount: directByRoot.get(r.id) ?? 0,
+        totalCount: totalByRoot.get(r.id) ?? 0,
+        createdAt: r.createdAt,
+      }))
+      // Company root always first — it's the whole organic network, not just
+      // another affiliate's cycle.
+      .sort((a, b) => (b.isCompanyRoot ? 1 : 0) - (a.isCompanyRoot ? 1 : 0))
   })
 
   // GET /affiliates/:id/network — matrix tree (SuperAdmin only), most recent cycle
   app.get('/:id/network', { preHandler: requireAdminAuth }, async (req) => {
     const { id } = req.params as { id: string }
-    const depth = getMatrixDepth()
+    const depth = Math.max(getMatrixDepth(), NETWORK_READ_DEPTH_CAP)
 
     const pos = await prisma.matrixPosition.findFirst({ where: { userId: id }, orderBy: { createdAt: 'desc' } })
     if (!pos) return null

@@ -14,6 +14,7 @@ interface Plan {
   billingCycle: 'MONTHLY' | 'YEARLY'
   features: string[]
   isActive: boolean
+  networkLevelPcts: Record<string, number> | null
   _count?: { subscriptions: number }
 }
 
@@ -25,9 +26,12 @@ interface FormState {
   billingCycle: 'MONTHLY' | 'YEARLY'
   features: string
   isActive: boolean
+  // One entry per matrix level, index 0 = level 1 — empty string means
+  // "use the global %" for that level (Credenciais → Comissões).
+  levelPcts: string[]
 }
 
-const EMPTY_FORM: FormState = { id: null, name: '', slug: '', price: '', billingCycle: 'MONTHLY', features: '', isActive: true }
+const EMPTY_FORM: FormState = { id: null, name: '', slug: '', price: '', billingCycle: 'MONTHLY', features: '', isActive: true, levelPcts: [] }
 
 function formatPrice(price: number | string, cycle: string) {
   return `R$ ${Number(price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/${cycle === 'YEARLY' ? 'ano' : 'mês'}`
@@ -41,6 +45,20 @@ export default function AdminPlansPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [matrixDepth, setMatrixDepth] = useState(5)
+  const [globalLevelPcts, setGlobalLevelPcts] = useState<string[]>([])
+
+  useEffect(() => {
+    adminFetch(`${API}/admin/credentials`)
+      .then(r => r.json())
+      .then(data => {
+        const flat = Object.values(data.grouped ?? {}).flat() as { key: string; value: string }[]
+        const depth = Number(flat.find(c => c.key === 'MATRIX_DEPTH')?.value) || 5
+        setMatrixDepth(depth)
+        setGlobalLevelPcts(Array.from({ length: depth }, (_, i) => flat.find(c => c.key === `MATRIX_LEVEL_${i + 1}_PCT`)?.value ?? ''))
+      })
+      .catch(() => {})
+  }, [])
 
   async function load() {
     setLoading(true)
@@ -59,7 +77,7 @@ export default function AdminPlansPage() {
   useEffect(() => { load() }, [])
 
   function openCreate() {
-    setForm(EMPTY_FORM)
+    setForm({ ...EMPTY_FORM, levelPcts: Array.from({ length: matrixDepth }, () => '') })
     setFormError(null)
     setFormOpen(true)
   }
@@ -73,6 +91,10 @@ export default function AdminPlansPage() {
       billingCycle: plan.billingCycle,
       features: plan.features.join(', '),
       isActive: plan.isActive,
+      levelPcts: Array.from({ length: matrixDepth }, (_, i) => {
+        const v = plan.networkLevelPcts?.[String(i + 1)]
+        return v === undefined || v === null ? '' : String(v)
+      }),
     })
     setFormError(null)
     setFormOpen(true)
@@ -85,6 +107,12 @@ export default function AdminPlansPage() {
     if (!form.slug.trim()) return setFormError('Slug é obrigatório.')
     if (!Number.isFinite(price) || price < 0) return setFormError('Preço inválido.')
 
+    const networkLevelPcts: Record<string, number> = {}
+    form.levelPcts.forEach((raw, i) => {
+      const v = Number(raw.replace(',', '.'))
+      if (raw.trim() !== '' && Number.isFinite(v)) networkLevelPcts[String(i + 1)] = v
+    })
+
     const body = {
       name: form.name.trim(),
       slug: form.slug.trim().toLowerCase(),
@@ -92,6 +120,7 @@ export default function AdminPlansPage() {
       billingCycle: form.billingCycle,
       features: form.features.split(',').map(f => f.trim()).filter(Boolean),
       isActive: form.isActive,
+      networkLevelPcts: Object.keys(networkLevelPcts).length > 0 ? networkLevelPcts : null,
     }
 
     setSaving(true)
@@ -189,6 +218,36 @@ export default function AdminPlansPage() {
               Benefícios (separados por vírgula)
               <input value={form.features} onChange={e => setForm(f => ({ ...f, features: e.target.value }))} style={inputStyle} placeholder="Cashback maior, Suporte prioritário" />
             </label>
+
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--sub)', marginBottom: 4 }}>
+                Comissão de rede por nível, quando alguém paga por este plano (%)
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
+                Quanto do valor pago flui pro patrocinador (nível 1) e pra cima na rede dele. Deixe em branco pra usar o padrão global de cada nível (<a href="/admin/credentials" style={{ color: 'var(--flame)' }}>Credenciais → Comissões</a>).
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {form.levelPcts.map((v, i) => (
+                  <label key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 600, color: 'var(--muted)', width: 90 }}>
+                    Nível {i + 1}
+                    <input
+                      value={v}
+                      onChange={e => setForm(f => { const next = [...f.levelPcts]; next[i] = e.target.value; return { ...f, levelPcts: next } })}
+                      placeholder={globalLevelPcts[i] ? `padrão ${globalLevelPcts[i]}` : '0'}
+                      style={{ ...inputStyle, padding: '7px 10px', fontSize: 13 }}
+                    />
+                  </label>
+                ))}
+              </div>
+              {(() => {
+                const total = form.levelPcts.reduce((sum, v, i) => sum + (v.trim() !== '' ? Number(v.replace(',', '.')) || 0 : Number(globalLevelPcts[i]) || 0), 0)
+                return (
+                  <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sub)' }}>
+                    Total pra rede: <strong>{total.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%</strong> do valor pago — o resto vira receita da empresa.
+                  </div>
+                )
+              })()}
+            </div>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13.5, color: 'var(--sub)' }}>
               <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} />

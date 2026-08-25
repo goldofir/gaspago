@@ -85,7 +85,16 @@ async function tryPlaceInCycle(rootPos: { id: string }, newUserId: string, width
 // still paying out to whoever's above them in the tree.
 export async function placeInMatrix(newUserId: string, referrerId: string): Promise<void> {
   const width = getMatrixWidth()
-  const depth = getMatrixDepth()
+
+  const referrer = await prisma.user.findUnique({ where: { id: referrerId }, select: { isCompanyRoot: true } })
+
+  // The company root (affiliate #1 — see User.isCompanyRoot) never
+  // saturates-and-re-enters like every other affiliate: its placement search
+  // has no depth ceiling, so it always finds room somewhere in its one and
+  // only tree. This is what lets the whole organic network (everyone with no
+  // real referrer, see resolveReferrer below) keep growing under a single
+  // root forever instead of fragmenting into disconnected cycles.
+  const depth = referrer?.isCompanyRoot ? Number.POSITIVE_INFINITY : getMatrixDepth()
 
   let activePos = await getActivePosition(referrerId)
   if (!activePos) {
@@ -105,18 +114,19 @@ export async function placeInMatrix(newUserId: string, referrerId: string): Prom
 }
 
 // Resolves who a new signup's referrer actually is: the explicit ?ref= code
-// if it's valid, otherwise the SuperAdmin-configured company fallback
-// (COMPANY_REFERRAL_CODE) — so everyone ends up in the network somewhere,
-// never with no matrix position at all, even with no referral link. Returns
-// null only if there's truly nothing to fall back to (explicit ref invalid
-// AND no company code configured yet) or the code resolves to the same
-// person who's signing up.
+// if it's valid, otherwise the company root (User.isCompanyRoot — set from
+// SuperAdmin -> Rede) — so everyone ends up in the network somewhere, never
+// with no matrix position at all, even with no referral link. Returns null
+// only if there's truly nothing to fall back to (explicit ref invalid AND no
+// company root configured yet) or it resolves to the person signing up.
 export async function resolveReferrer(explicitRef: string | undefined, newUserId: string) {
-  const code = explicitRef || SystemConfigService.get('COMPANY_REFERRAL_CODE')
-  if (!code) return null
-  const referrer = await prisma.user.findUnique({ where: { referralCode: code } })
-  if (!referrer || referrer.id === newUserId) return null
-  return referrer
+  if (explicitRef) {
+    const referrer = await prisma.user.findUnique({ where: { referralCode: explicitRef } })
+    if (referrer && referrer.id !== newUserId) return referrer
+  }
+  const companyRoot = await prisma.user.findFirst({ where: { isCompanyRoot: true } })
+  if (!companyRoot || companyRoot.id === newUserId) return null
+  return companyRoot
 }
 
 // Walks up from a user's own (most recent) matrix position, collecting up

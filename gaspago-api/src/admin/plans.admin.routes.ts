@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../shared/prisma';
 
 const PlanSchema = z.object({
@@ -9,7 +10,20 @@ const PlanSchema = z.object({
   billingCycle: z.enum(['MONTHLY', 'YEARLY']).default('MONTHLY'),
   features: z.array(z.string()).default([]),
   isActive: z.boolean().default(true),
+  // Sparse per-level network commission override, e.g. {"1": 12, "3": 8} —
+  // levels absent from the map fall back to the global MATRIX_LEVEL_N_PCT.
+  // Only applies when someone actually pays for this plan (subscription
+  // commission), not to orders/POS sales.
+  networkLevelPcts: z.record(z.string(), z.number().min(0).max(100)).nullable().optional(),
 });
+
+// Prisma's Json columns need the Prisma.JsonNull sentinel to actually write a
+// SQL NULL — a plain `null` in the data object is typed as "field not set"
+// (DbNull-vs-JsonNull-vs-omit is a real 3-way distinction for Json fields).
+function toJsonInput(v: Record<string, number> | null | undefined) {
+  if (v === undefined) return undefined
+  return v === null ? Prisma.JsonNull : v
+}
 
 export async function plansAdminRoutes(app: FastifyInstance) {
   // GET /admin/plans
@@ -28,7 +42,7 @@ export async function plansAdminRoutes(app: FastifyInstance) {
     const existing = await prisma.plan.findUnique({ where: { slug: body.slug } });
     if (existing) return reply.status(409).send({ error: 'Já existe um plano com esse slug.' });
 
-    const plan = await prisma.plan.create({ data: body });
+    const plan = await prisma.plan.create({ data: { ...body, networkLevelPcts: toJsonInput(body.networkLevelPcts) } });
     return reply.status(201).send(plan);
   });
 
@@ -45,7 +59,7 @@ export async function plansAdminRoutes(app: FastifyInstance) {
       if (clash) return reply.status(409).send({ error: 'Já existe um plano com esse slug.' });
     }
 
-    const updated = await prisma.plan.update({ where: { id }, data: body });
+    const updated = await prisma.plan.update({ where: { id }, data: { ...body, networkLevelPcts: toJsonInput(body.networkLevelPcts) } });
     return reply.send(updated);
   });
 

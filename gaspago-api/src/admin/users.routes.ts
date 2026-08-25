@@ -63,6 +63,13 @@ export async function usersRoutes(app: FastifyInstance) {
                     fgolFrozen: { type: 'string' },
                     lastPurchaseAt: { type: ['string', 'null'] },
                     createdAt: { type: 'string' },
+                    plan: {
+                      type: ['object', 'null'],
+                      properties: {
+                        name: { type: 'string' },
+                        slug: { type: 'string' },
+                      },
+                    },
                     _count: {
                       type: 'object',
                       properties: {
@@ -115,7 +122,20 @@ export async function usersRoutes(app: FastifyInstance) {
         prisma.user.count({ where }),
       ])
 
-      return reply.send({ users, total })
+      // Active subscription plan per user — separate query since Subscription
+      // has no declared Prisma relation back to User (plain userId string).
+      const subs = users.length > 0
+        ? await prisma.subscription.findMany({
+            where: { userId: { in: users.map(u => u.id) }, isActive: true, expiresAt: { gt: new Date() } },
+            select: { userId: true, planRef: { select: { name: true, slug: true } } },
+          })
+        : []
+      const planByUserId = new Map(subs.filter(s => s.planRef).map(s => [s.userId, s.planRef!]))
+
+      return reply.send({
+        users: users.map(u => ({ ...u, plan: planByUserId.get(u.id) ?? null })),
+        total,
+      })
     }
   )
 }

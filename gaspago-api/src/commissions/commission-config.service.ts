@@ -63,3 +63,14 @@ export function getLevelPct(level: number): number {
   if (level < 1 || level > 10) return 0
   return readPct(`MATRIX_LEVEL_${level}_PCT`, DEFAULT_LEVEL_PCT[level - 1] ?? 0) / 100
 }
+
+// Same idea as getLevelPct, but for a specific Plan's own price (subscription
+// commissions, not orders) — a plan can override individual levels via its
+// sparse networkLevelPcts JSON ({"1": 12, "3": 8}); any level absent from
+// that map just falls back to the global MATRIX_LEVEL_N_PCT above.
+export function getPlanLevelPct(plan: { networkLevelPcts?: unknown } | null | undefined, level: number): number {
+  const overrides = plan?.networkLevelPcts as Record<string, number> | null | undefined
+  const override = overrides?.[String(level)]
+  if (typeof override === 'number' && Number.isFinite(override)) return override / 100
+  return getLevelPct(level)
+}

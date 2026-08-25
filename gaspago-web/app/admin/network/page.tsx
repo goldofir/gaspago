@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Users, ChevronRight, ChevronDown, Network, Settings2 } from 'lucide-react'
+import { Users, ChevronRight, ChevronDown, Network, Settings2, Building2 } from 'lucide-react'
 import { adminFetch } from '../../_components/adminFetch'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
@@ -12,10 +12,13 @@ type RootRow = {
   name: string | null
   phone: string
   actorType: string | null
+  isCompanyRoot: boolean
   directCount: number
   totalCount: number
   createdAt: string
 }
+
+type CompanyRoot = { id: string; name: string | null; phone: string } | null
 
 type TreeNode = {
   id: string
@@ -71,14 +74,62 @@ export default function AdminNetworkPage() {
   const [width, setWidth] = useState('')
   const [depth, setDepth] = useState('')
 
-  useEffect(() => {
+  const [companyRoot, setCompanyRoot] = useState<CompanyRoot>(null)
+  const [loadingCompanyRoot, setLoadingCompanyRoot] = useState(true)
+  const [companyPhone, setCompanyPhone] = useState('')
+  const [savingCompanyRoot, setSavingCompanyRoot] = useState(false)
+  const [companyRootMsg, setCompanyRootMsg] = useState('')
+
+  function loadRoots() {
+    setLoadingRoots(true)
     adminFetch(`${API}/affiliates/roots`)
       .then(r => r.json())
       .then(data => {
         setRoots(Array.isArray(data) ? data : [])
+        // Server sorts the company root first when one exists — default to it.
         if (Array.isArray(data) && data.length > 0) setSelectedId(data[0].userId)
       })
       .finally(() => setLoadingRoots(false))
+  }
+
+  function loadCompanyRoot() {
+    setLoadingCompanyRoot(true)
+    adminFetch(`${API}/affiliates/company-root`)
+      .then(r => r.json())
+      .then(setCompanyRoot)
+      .catch(() => setCompanyRoot(null))
+      .finally(() => setLoadingCompanyRoot(false))
+  }
+
+  async function saveCompanyRoot() {
+    if (!companyPhone.trim()) return
+    setSavingCompanyRoot(true)
+    setCompanyRootMsg('')
+    try {
+      const res = await adminFetch(`${API}/affiliates/company-root`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: companyPhone.trim() }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setCompanyRootMsg(data?.error ?? 'Erro ao definir.')
+        return
+      }
+      setCompanyPhone('')
+      loadCompanyRoot()
+      loadRoots()
+    } catch {
+      setCompanyRootMsg('Erro ao definir.')
+    } finally {
+      setSavingCompanyRoot(false)
+      setTimeout(() => setCompanyRootMsg(''), 4000)
+    }
+  }
+
+  useEffect(() => {
+    loadRoots()
+    loadCompanyRoot()
 
     adminFetch(`${API}/admin/credentials`)
       .then(r => r.json())
@@ -108,6 +159,33 @@ export default function AdminNetworkPage() {
           <p style={{ marginTop: 6, fontSize: 13.5, color: 'var(--sub)' }}>Toda a rede de indicação sendo formada — cada raiz é um ciclo independente (inclui reentradas).</p>
         </div>
 
+        {/* Company root — affiliate #1 */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <Building2 size={16} color="var(--flame)" />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase' }}>Afiliado empresa (raiz do sistema)</div>
+            <div style={{ fontSize: 13.5, color: 'var(--text)', marginTop: 2 }}>
+              {loadingCompanyRoot ? 'Carregando…' : companyRoot ? (
+                <><strong>{companyRoot.name || companyRoot.phone}</strong> · {companyRoot.phone} — quem se cadastra sem link de indicação cai aqui, e essa rede nunca reentra, só continua transbordando pra sempre.</>
+              ) : (
+                'Nenhum definido — cadastros orgânicos (sem link de indicação) não entram em rede nenhuma.'
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+            <input
+              value={companyPhone}
+              onChange={e => setCompanyPhone(e.target.value)}
+              placeholder="Telefone (já cadastrado)"
+              style={{ width: 180, padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }}
+            />
+            <button onClick={saveCompanyRoot} disabled={savingCompanyRoot} style={{ padding: '8px 14px', borderRadius: 8, background: 'var(--flame)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', opacity: savingCompanyRoot ? 0.7 : 1, whiteSpace: 'nowrap' }}>
+              {savingCompanyRoot ? 'Salvando…' : companyRoot ? 'Trocar' : 'Definir'}
+            </button>
+            {companyRootMsg && <span style={{ fontSize: 12, color: 'var(--red)' }}>{companyRootMsg}</span>}
+          </div>
+        </div>
+
         {/* Config summary (read-only — configurado em Credenciais → Comissões) */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
           <Settings2 size={16} color="var(--muted)" />
@@ -120,7 +198,7 @@ export default function AdminNetworkPage() {
             <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{depth || '—'}</span>
           </div>
           <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}>
-            Configurável (junto com comissões por nível, cashback e código da empresa) em <a href="/admin/credentials" style={{ color: 'var(--flame)', fontWeight: 600 }}>Credenciais → Comissões</a>
+            Configurável (junto com comissões por nível e cashback) em <a href="/admin/credentials" style={{ color: 'var(--flame)', fontWeight: 600 }}>Credenciais → Comissões</a>
           </span>
         </div>
 
@@ -148,8 +226,11 @@ export default function AdminNetworkPage() {
                       background: selectedId === r.userId ? 'rgba(255,101,36,.06)' : 'transparent',
                     }}
                   >
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{r.name || r.phone}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>{r.actorType ?? 'CONSUMER'}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {r.isCompanyRoot && <Building2 size={12} color="var(--flame)" />}
+                      {r.name || r.phone}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>{r.isCompanyRoot ? 'Empresa' : (r.actorType ?? 'CONSUMER')}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--sub)', marginTop: 4 }}>
                       <Users size={11} /> {r.directCount} diretos · {r.totalCount} no total
                     </div>

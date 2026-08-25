@@ -134,6 +134,16 @@ model User {
   referralCode  String        @unique @default(cuid())
   referredById  String?
 
+  // The one user that IS the company in the matrix — affiliate #1. Everyone
+  // who signs up with no real referrer falls under them (see resolveReferrer
+  // in matrix-placement.service.ts). Unlike every other affiliate, their own
+  // matrix never saturates-and-re-enters: placement search for referrals
+  // under them is depth-unbounded, so the whole organic network just keeps
+  // spilling deeper under this one root forever. At most one user should
+  // ever have this true — enforced in application code (affiliate.routes.ts
+  // company-root endpoints), not a DB constraint.
+  isCompanyRoot Boolean @default(false)
+
   // Affiliate state machine
   affiliateStatus       AffiliateStatus @default(ACTIVE)
   monthsWithoutPurchase Int             @default(0)
@@ -675,6 +685,14 @@ model Plan {
   billingCycle String   @default("MONTHLY") // "MONTHLY" | "YEARLY"
   features     String[] // benefit bullet points shown in the upgrade UI
   isActive     Boolean  @default(true)
+
+  // Sparse per-level network commission override for THIS plan's price,
+  // e.g. {"1": 12, "3": 8} — level 2, 4, 5... fall back to the global
+  // MATRIX_LEVEL_N_PCT (Credenciais -> Comissões) when absent. null/empty
+  // means "use the global %s for every level" — see getPlanLevelPct in
+  // commission-config.service.ts. Only applies to subscription-payment
+  // commissions (distributeSubscriptionCommission), not orders/POS.
+  networkLevelPcts Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
