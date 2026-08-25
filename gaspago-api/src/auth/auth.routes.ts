@@ -118,7 +118,10 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
     const payload = (req as any).user as { id: string }
 
-    const user = await prisma.user.findUniqueOrThrow({
+    // A stale token for a since-deleted user (found live testing /painel —
+    // leftover localStorage token from an earlier test account) should read
+    // as "log me out," not crash the request with a raw 500.
+    const user = await prisma.user.findUnique({
       where: { id: payload.id },
       select: {
         id: true,
@@ -136,6 +139,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         createdAt: true,
       },
     })
+    if (!user) return reply.status(401).send({ error: 'Sessão inválida.' })
 
     // Mobile's User type reads plan/referral_code/fgol_balance/fgol_frozen —
     // this used to omit plan/referralCode entirely and return the FGOL fields
@@ -147,5 +151,48 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       fgol_balance: user.fgolBalance,
       fgol_frozen: user.fgolFrozen,
     })
+  })
+
+  // PATCH /me — self-service profile edit (name/email/cpf). No self-service
+  // edit ever existed before this (mobile only ever displayed these
+  // read-only) — email and cpf are @unique, so a real conflict is expected
+  // and handled explicitly rather than surfacing a raw Prisma error.
+  const updateMeSchema = z.object({
+    name: z.string().min(1).max(120).optional(),
+    email: z.string().email().optional(),
+    cpf: z.string().regex(/^\d{11}$/, 'CPF deve ter 11 dígitos').optional(),
+  })
+
+  app.patch('/me', async (req, reply) => {
+    await (req as any).jwtVerify()
+    const payload = (req as any).user as { id: string }
+
+    const parseResult = updateMeSchema.safeParse(req.body)
+    if (!parseResult.success) {
+      return reply.status(400).send({ error: parseResult.error.flatten() })
+    }
+    const data = parseResult.data
+
+    if (data.email) {
+      const clash = await prisma.user.findFirst({ where: { email: data.email, id: { not: payload.id } } })
+      if (clash) return reply.status(409).send({ error: 'Esse e-mail já está em uso por outra conta.' })
+    }
+    if (data.cpf) {
+      const clash = await prisma.user.findFirst({ where: { cpf: data.cpf, id: { not: payload.id } } })
+      if (clash) return reply.status(409).send({ error: 'Esse CPF já está cadastrado em outra conta.' })
+    }
+
+    // Same stale-token guard as GET /me — a deleted user's token trying to
+    // save a profile should read as "log me out," not a raw 500.
+    const exists = await prisma.user.findUnique({ where: { id: payload.id }, select: { id: true } })
+    if (!exists) return reply.status(401).send({ error: 'Sessão inválida.' })
+
+    const user = await prisma.user.update({
+      where: { id: payload.id },
+      data,
+      select: { id: true, phone: true, name: true, email: true, cpf: true },
+    })
+
+    return reply.send(user)
   })
 }

@@ -59,6 +59,21 @@ export async function marketplaceRoutes(app: FastifyInstance) {
     return est
   })
 
+  // GET /marketplace/my-purchases — the caller's own POS/marketplace payment
+  // history ("faturas" of marketplace purchases, distinct from gas delivery
+  // Orders). No self-service list of this existed before — PosPayment only
+  // had a merchant-side history (GET /pos/me/history, scoped to the
+  // establishment), nothing scoped to the buyer.
+  app.get('/my-purchases', { preHandler: requireAuth }, async (req) => {
+    const customerId = (req as any).user.id as string
+    return prisma.posPayment.findMany({
+      where: { customerId },
+      include: { establishment: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    })
+  })
+
   // POST /marketplace/checkout — logged-in consumer buys directly (no physical QR scan needed,
   // they're already authenticated and already chose the establishment by browsing).
   const CheckoutSchema = z.object({
