@@ -31,21 +31,29 @@ async function createRootPosition(userId: string) {
 
 // Depth-bounded breadth-first search for the oldest node — starting at
 // `rootPos` — that still has an open child slot, capped at MATRIX_DEPTH
-// generations of descendants (matching the 5¹+5²+…+5^depth capacity of a
-// real forced-matrix cycle). Returns true if it placed the new member,
-// false if this cycle is completely saturated (every node from level 1
-// through level depth+1 already has `width` children or is itself at the
-// deepest allowed generation).
+// generations of descendants BELOW rootPos specifically (matching the
+// 5¹+5²+…+5^depth capacity of a real forced-matrix cycle). Every affiliate
+// gets their own full-depth matrix rooted at themselves, no matter how deep
+// they themselves sit inside an ancestor's matrix — so this tracks depth
+// relative to rootPos (a separate BFS counter), not MatrixPosition.level,
+// which is absolute from whatever cycle's own root. Using the absolute
+// level here would shrink a deeply-nested affiliate's own matrix down to
+// however many generations were "left over" from their ancestor's depth
+// budget, instead of giving them the full configured depth — inconsistent
+// with collectAncestorUserIds, which already counts relative to whoever's
+// paying, not from some distant root. Returns true if it placed the new
+// member, false if this cycle is completely saturated.
 async function tryPlaceInCycle(rootPos: { id: string }, newUserId: string, width: number, depth: number): Promise<boolean> {
-  const queue: string[] = [rootPos.id]
+  const queue: { id: string; relativeLevel: number }[] = [{ id: rootPos.id, relativeLevel: 1 }]
   while (queue.length > 0) {
-    const nodeId = queue.shift()!
-    const node = await prisma.matrixPosition.findUniqueOrThrow({ where: { id: nodeId } })
-    // level counts the root as 1 — a node can only sponsor children while
-    // it's within the first `depth` generations; the (depth+1)th generation
-    // is the deepest paid tier and is a dead end for further placement.
-    if (node.level > depth) continue
+    const { id: nodeId, relativeLevel } = queue.shift()!
+    // relativeLevel counts rootPos itself as 1 — a node can only sponsor
+    // children while it's within the first `depth` generations below
+    // rootPos; the (depth+1)th generation is the deepest paid tier and is a
+    // dead end for further placement in this cycle.
+    if (relativeLevel > depth) continue
 
+    const node = await prisma.matrixPosition.findUniqueOrThrow({ where: { id: nodeId } })
     const children = await prisma.matrixPosition.findMany({
       where: { parentId: nodeId },
       orderBy: { createdAt: 'asc' },
@@ -62,7 +70,7 @@ async function tryPlaceInCycle(rootPos: { id: string }, newUserId: string, width
       })
       return true
     }
-    queue.push(...children.map(c => c.id))
+    queue.push(...children.map(c => ({ id: c.id, relativeLevel: relativeLevel + 1 })))
   }
   return false
 }
