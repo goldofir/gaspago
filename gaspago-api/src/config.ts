@@ -12,12 +12,6 @@ export const config = {
     baseUrl: process.env.ASAAS_BASE_URL ?? 'https://sandbox.asaas.com/api/v3',
   },
 
-  conexbot: {
-    apiUrl: process.env.CONEXBOT_API_URL!,
-    apiKey: process.env.CONEXBOT_API_KEY!,
-    webhookSecret: process.env.CONEXBOT_WEBHOOK_SECRET!,
-  },
-
   polygon: {
     rpcUrl: process.env.POLYGON_RPC_URL ?? 'https://polygon-rpc.com',
     fgolContract: process.env.FGOL_CONTRACT!,
