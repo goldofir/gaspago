@@ -1,6 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../shared/prisma'
 import { SystemConfigService } from '../shared/system-config.service'
+import { getOrCreateCustomerId } from '../payments/customer.service'
+import { getPixQrCode } from '../payments/asaas.client'
 import axios from 'axios'
 
 const ASAAS_URLS: Record<string, string> = {
@@ -59,7 +61,9 @@ export async function subscriptionRoutes(app: FastifyInstance) {
     const { id: userId } = (req as any).user
     // planId is preferred; plan/slug kept as a fallback so any existing caller
     // still resolves to the seeded "premium" plan instead of breaking outright.
-    const body = req.body as { planId?: string; plan?: string } | undefined
+    // cpf is only used if the user's profile doesn't already have one saved —
+    // Asaas rejects a PIX charge without a CPF/CNPJ on the customer.
+    const body = req.body as { planId?: string; plan?: string; cpf?: string } | undefined
 
     const plan = body?.planId
       ? await prisma.plan.findUnique({ where: { id: body.planId } })
@@ -75,12 +79,20 @@ export async function subscriptionRoutes(app: FastifyInstance) {
 
     const nextDueDate = new Date(Date.now() + 86400000).toISOString().split('T')[0]
 
+    // Asaas needs a real Asaas Customer id here, not our internal userId — same
+    // lazy-create-and-cache helper the order/marketplace checkouts already use.
+    // Passing userId directly (the previous behavior) always failed with
+    // "Cliente inválido ou não informado," since no such customer exists on
+    // Asaas's side — this subscribe flow had never actually been exercised
+    // end-to-end before.
+    const asaasCustomerId = await getOrCreateCustomerId(userId, body?.cpf)
+
     let asaasRes: any = null
     try {
       asaasRes = await axios.post(
         `${baseURL}/subscriptions`,
         {
-          customer: userId,
+          customer: asaasCustomerId,
           billingType: 'PIX',
           value: Number(plan.price),
           nextDueDate,
@@ -96,6 +108,33 @@ export async function subscriptionRoutes(app: FastifyInstance) {
     }
 
     const asaasSubscriptionId: string = asaasRes.data?.id ?? null
+
+    // POST /subscriptions creates the recurring plan itself — it does NOT
+    // return a PIX code inline (asaasRes.data.pix is always undefined here,
+    // a bug in this route until now). The first charge is generated as a
+    // separate Payment under the subscription; fetch it, then its PIX QR
+    // code, same helper POS/order checkout already uses. Best-effort: if
+    // Asaas hasn't materialized the first payment yet, the subscription
+    // still gets created — the consumer just won't see a QR code this
+    // request and would need to retry.
+    let pixQrCode: string | null = null
+    let pixKey: string | null = null
+    try {
+      const paymentsRes = await axios.get(`${baseURL}/subscriptions/${asaasSubscriptionId}/payments`, {
+        headers: { access_token: apiKey },
+      })
+      const firstPaymentId = paymentsRes.data?.data?.[0]?.id
+      if (firstPaymentId) {
+        const qr = await getPixQrCode(firstPaymentId)
+        // Both web and mobile display `pixQrCode` as plain copy-paste text
+        // (a "copia e cola" box, not an <img>) — that's qr.payload, not the
+        // base64 PNG in qr.encodedImage.
+        pixQrCode = qr.payload ?? null
+        pixKey = qr.payload ?? null
+      }
+    } catch (err: any) {
+      app.log.warn({ err: err?.response?.data ?? err?.message, asaasSubscriptionId }, '[subscribe] could not fetch PIX QR code for first payment')
+    }
 
     const existing = await prisma.subscription.findFirst({ where: { userId } })
 
@@ -134,8 +173,8 @@ export async function subscriptionRoutes(app: FastifyInstance) {
         status: subscription.isActive ? 'ACTIVE' : 'PENDING',
         expiresAt: subscription.expiresAt,
       },
-      pixQrCode: asaasRes.data?.pix?.qrCode ?? null,
-      pixKey: asaasRes.data?.pix?.payload ?? null,
+      pixQrCode,
+      pixKey,
     })
   })
 

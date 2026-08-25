@@ -238,6 +238,13 @@ export default function PortalLoginForm({ portal }: { portal?: PortalKind }) {
             <div style={{ marginTop: 10 }}>
               <Web3AuthConnect label="Entrar com carteira (Google/e-mail)" onSuccess={handleWeb3AuthSuccess} onError={setError} />
             </div>
+
+            {!portal && (
+              <p style={{ marginTop: 18, textAlign: 'center', fontSize: 12.5, color: '#94A3B8' }}>
+                É afiliado (não é distribuidora, credenciador ou estabelecimento)?{' '}
+                <a href="/cadastro" style={{ color: meta.accent, fontWeight: 600, textDecoration: 'none' }}>Entre por aqui</a>
+              </p>
+            )}
           </div>
 
           <p className="plf-footer">Gás Pago V3 · Acesso restrito a contas autorizadas</p>

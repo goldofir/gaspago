@@ -1,14 +1,14 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 import GoogleSignInButton from '../_components/GoogleSignInButton'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030'
 const TOKEN_KEY = 'gp_consumer_token'
 
-type Step = 'phone' | 'otp' | 'done'
+type Step = 'phone' | 'otp'
 
 function formatBRPhone(raw: string): string {
   const digits = raw.replace(/\D/g, '').slice(0, 11)
@@ -19,6 +19,7 @@ function formatBRPhone(raw: string): string {
 
 function CadastroForm() {
   const params = useSearchParams()
+  const router = useRouter()
   const ref = params.get('ref') ?? undefined
 
   const [step, setStep] = useState<Step>('phone')
@@ -26,7 +27,6 @@ function CadastroForm() {
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [referralCode, setReferralCode] = useState('')
 
   const rawPhone = phone.replace(/\D/g, '')
   const fullPhone = `55${rawPhone}`
@@ -66,19 +66,16 @@ function CadastroForm() {
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.error ?? 'Código inválido ou expirado.')
       localStorage.setItem(TOKEN_KEY, data.access_token)
-      setReferralCode(data.user?.referral_code ?? '')
-      setStep('done')
+      router.push('/painel')
     } catch (err: any) {
       setError(err.message ?? 'Erro ao conectar com o servidor.')
-    } finally {
       setLoading(false)
     }
   }
 
-  function handleGoogleSuccess(data: { token: string; role: string; user?: { referral_code?: string } }) {
+  function handleGoogleSuccess(data: { token: string; role: string }) {
     localStorage.setItem(TOKEN_KEY, data.token)
-    setReferralCode((data as any).user?.referral_code ?? '')
-    setStep('done')
+    router.push('/painel')
   }
 
   return (
@@ -109,10 +106,6 @@ function CadastroForm() {
         .cad-divider-line { flex: 1; height: 1px; background: #E2E8F0; }
         .cad-divider-text { font-size: 12px; color: #94A3B8; }
         .cad-back { display: inline-block; margin-top: 20px; color: #FF6524; font-weight: 600; font-size: 13.5px; text-decoration: none; background: none; border: none; cursor: pointer; padding: 0; }
-        .cad-done { text-align: center; padding: 8px 0; }
-        .cad-done-icon { color: #10B981; margin-bottom: 14px; }
-        .cad-refcode { background: #F4F6FA; border-radius: 10px; padding: 12px; margin: 16px 0; font-size: 13px; color: #475569; }
-        .cad-refcode b { color: #0F2040; font-family: monospace; }
         @media (max-width: 420px) { .cad-card { padding: 26px 20px; } }
       `}</style>
 
@@ -122,22 +115,9 @@ function CadastroForm() {
         </div>
 
         <div className="cad-card">
-          {step === 'done' ? (
-            <div className="cad-done">
-              <CheckCircle2 size={48} className="cad-done-icon" />
-              <h2 className="cad-title">Conta criada!</h2>
-              <p className="cad-desc">Você já pode pedir gás e acompanhar seu saldo FGOL pelo app. Baixe o Gás Pago no seu celular pra continuar.</p>
-              {referralCode && (
-                <div className="cad-refcode">
-                  Seu código de indicação: <b>{referralCode}</b><br />
-                  Compartilhe pra ganhar comissão sobre o consumo de quem você indicar.
-                </div>
-              )}
-              <a className="cad-back" href="/">← Voltar ao início</a>
-            </div>
-          ) : step === 'phone' ? (
+          {step === 'phone' ? (
             <>
-              <h2 className="cad-title">Criar conta</h2>
+              <h2 className="cad-title">Entrar ou criar conta</h2>
               <p className="cad-desc">
                 {ref ? 'Você foi indicado por um amigo — ' : ''}Digite seu celular pra receber um código de acesso. Se já tem conta, entra do mesmo jeito.
               </p>
