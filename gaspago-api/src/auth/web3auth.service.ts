@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify } from 'jose'
+import { createRemoteJWKSet, decodeJwt, decodeProtectedHeader, jwtVerify } from 'jose'
 import { SystemConfigService } from '../shared/system-config.service'
 
 const JWKS_URL = 'https://api-auth.web3auth.io/jwks'
@@ -44,7 +44,14 @@ export async function verifyWeb3AuthToken(idToken: string, claimedWalletAddress:
     // clientId configured in Credenciais doesn't match the one the
     // frontend actually initialized with" apart from "token genuinely
     // expired" apart from "network/JWKS unreachable."
-    console.error('[web3auth] token verification failed', { code: err?.code, message: err?.message, clientId })
+    // Temporary extra diagnostic: the header alone (never the token itself,
+    // it's a bearer credential) shows exactly which kid/alg the real token
+    // demands, so it can be compared directly against what getJwks() serves.
+    let header: unknown
+    let claims: unknown
+    try { header = decodeProtectedHeader(idToken) } catch { /* not even a JWT */ }
+    try { claims = decodeJwt(idToken) } catch { /* not even a JWT */ }
+    console.error('[web3auth] token verification failed', { code: err?.code, message: err?.message, clientId, header, claims })
     throw Object.assign(new Error('Token de autenticação inválido ou expirado.'), { statusCode: 401 })
   }
 
